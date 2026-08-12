@@ -612,10 +612,17 @@
                     if (!error && data) { 
                         items = data; 
                         renderApp(); 
+                        if (data.length > 0) {
+                            showPushAlert("เชื่อมต่อคลาวด์สำเร็จ", `โหลดข้อมูล ${data.length} รายการแล้ว`);
+                        }
                         return; 
+                    } else if (error) {
+                        showPushAlert("ดึงข้อมูล DB ล้มเหลว", `${error.message} (${error.code || '404'})`);
+                        console.error("Supabase fetch error details:", error);
                     }
                 } catch (e) {
-                    console.error("Supabase fetch failed, falling back to LocalStorage:", e);
+                    showPushAlert("ข้อผิดพลาดในการโหลดคลาวด์", e.message);
+                    console.error("Supabase fetch exception:", e);
                 }
             }
             const stored = localStorage.getItem('fridgemate_items_v1');
@@ -630,19 +637,21 @@
                     const { error } = await supabaseClient.from('fridgemate_items').insert([newItem]);
                     if (!error) { 
                         await fetchItems(); 
-                        showPushAlert("เพิ่มวัตถุดิบสำเร็จ", `บันทึก "${newItem.name}" ลงในฐานข้อมูลคลาวด์แล้ว`);
+                        showPushAlert("บันทึกสำเร็จ", `เพิ่ม "${newItem.name}" ลงคลาวด์แล้ว`);
                         return; 
                     } else {
-                        console.error("Supabase insert error:", error);
+                        showPushAlert("บันทึกลงคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
+                        console.error("Supabase insert error details:", error);
                     }
                 } catch(e) {
-                    console.error("Supabase insert exception, writing to LocalStorage:", e);
+                    showPushAlert("บันทึกผิดพลาด", e.message);
+                    console.error("Supabase insert exception:", e);
                 }
             }
             items.push(newItem);
             localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
             renderApp();
-            showPushAlert("เพิ่มวัตถุดิบสำเร็จ (Local)", `บันทึก "${newItem.name}" ลงในเครื่องแล้ว`);
+            showPushAlert("บันทึกสำเร็จ (Local)", `เพิ่ม "${newItem.name}" ในบราวเซอร์แล้ว`);
         }
 
         // Update item details inside DB / LocalStorage
@@ -652,11 +661,15 @@
                     const { error } = await supabaseClient.from('fridgemate_items').update(patchObj).eq('item_id', itemId);
                     if (!error) { 
                         await fetchItems(); 
-                        showPushAlert("อัปเดตสำเร็จ", "ปรับปรุงรายละเอียดวัตถุดิบแล้ว");
+                        showPushAlert("แก้ไขสำเร็จ", "ปรับปรุงข้อมูลบนคลาวด์แล้ว");
                         return; 
+                    } else {
+                        showPushAlert("อัปเดตคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
+                        console.error("Supabase update error details:", error);
                     }
                 } catch(e) {
-                    console.error("Supabase update failed:", e);
+                    showPushAlert("อัปเดตผิดพลาด", e.message);
+                    console.error("Supabase update exception:", e);
                 }
             }
             const idx = items.findIndex(i => i.item_id === itemId);
@@ -665,7 +678,7 @@
                 localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
             }
             renderApp();
-            showPushAlert("อัปเดตสำเร็จ (Local)", "ปรับปรุงรายละเอียดวัตถุดิบแล้ว");
+            showPushAlert("แก้ไขสำเร็จ (Local)", "ปรับปรุงข้อมูลในเครื่องแล้ว");
         }
 
         // Delete item from DB / LocalStorage
@@ -678,17 +691,21 @@
                     const { error } = await supabaseClient.from('fridgemate_items').delete().eq('item_id', itemId);
                     if (!error) { 
                         await fetchItems(); 
-                        showPushAlert("ลบวัตถุดิบแล้ว", `นำ "${itemName}" ออกจากระบบคลาวด์แล้ว`);
+                        showPushAlert("ลบวัตถุดิบสำเร็จ", `นำ "${itemName}" ออกจากคลาวด์แล้ว`);
                         return; 
+                    } else {
+                        showPushAlert("ลบจากคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
+                        console.error("Supabase delete error details:", error);
                     }
                 } catch(e) {
-                    console.error("Supabase delete failed:", e);
+                    showPushAlert("ลบผิดพลาด", e.message);
+                    console.error("Supabase delete exception:", e);
                 }
             }
             items = items.filter(i => i.item_id !== itemId);
             localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
             renderApp();
-            showPushAlert("ลบวัตถุดิบแล้ว", `นำ "${itemName}" ออกจากระบบแล้ว`);
+            showPushAlert("ลบวัตถุดิบสำเร็จ (Local)", `นำ "${itemName}" ออกจากเครื่องแล้ว`);
         }
 
         // Initial setup for standard mock datasets
