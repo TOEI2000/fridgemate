@@ -127,9 +127,9 @@
                     <div>
                         <h1 class="text-lg font-bold tracking-wide flex items-center gap-1.5">
                             <span>FridgeMate</span>
-                            <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-normal px-1.5 py-0.2 rounded border border-emerald-500/30">MVP 2</span>
                         </h1>
-                        <p class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
+                        <!-- Technical status badges hidden to keep clean header -->
+                        <p class="hidden text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
                             <span id="db-status-badge" class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">Cloud DB</span>
                             <span id="ai-status-badge" class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">AI Engine</span>
                             <span id="db-error-msg" class="hidden text-rose-400 font-bold bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 rounded text-[8px]"></span>
@@ -143,11 +143,9 @@
                         <input type="text" id="household-id-input" value="HOME123" onchange="updateHouseholdId(this.value)" class="bg-transparent border-none text-emerald-400 font-bold focus:outline-none focus:ring-0 p-0 text-[10px] w-14 text-center cursor-pointer" title="คลิกเพื่อแก้ไขรหัสบ้าน">
                     </div>
                     
-                    <button onclick="openConfigModal()" class="w-9 h-9 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 rounded-xl transition-all border border-slate-700" title="ตั้งค่าระบบ">
+                    <!-- Hidden Config Gear (Can be revealed by removing the 'hidden' class) -->
+                    <button onclick="openConfigModal()" class="hidden w-9 h-9 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 rounded-xl transition-all border border-slate-700" title="ตั้งค่าระบบ">
                         <i class="fa-solid fa-sliders text-xs text-slate-300"></i>
-                    </button>
-                    <button onclick="triggerDailyAlert()" class="w-9 h-9 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 rounded-xl transition-all border border-slate-700 text-amber-400" title="ทดสอบแจ้งเตือน">
-                        <i class="fa-solid fa-bell text-xs animate-pulse"></i>
                     </button>
                 </div>
             </div>
@@ -163,7 +161,17 @@
                         <p id="summary-text" class="text-xs font-semibold text-slate-200 mt-0.5">กำลังประมวลผล...</p>
                     </div>
                 </div>
-                <i class="fa-solid fa-circle-exclamation text-rose-500 text-sm opacity-60"></i>
+                
+                <div class="flex items-center gap-2">
+                    <!-- Daily Summary Alert Bell Button (Moved from Header) -->
+                    <button onclick="triggerDailyAlert()" class="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-750 border border-slate-700/80 flex items-center justify-center text-amber-400 transition-all active:scale-95 shadow-md" title="ดูสรุปประจำวัน">
+                        <i class="fa-solid fa-bell text-xs animate-bounce"></i>
+                    </button>
+                    <!-- LINE Alert Webhook Trigger Button -->
+                    <button onclick="triggerLineWebhook()" class="w-8 h-8 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 flex items-center justify-center text-emerald-400 transition-all active:scale-95 shadow-md" title="ส่งแจ้งเตือนเข้า LINE">
+                        <i class="fa-brands fa-line text-sm"></i>
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -550,14 +558,17 @@
         const CFG_KEY_KEY = "fridgemate_sb_key";
         const CFG_N8N_KEY = "fridgemate_n8n_url";
         const CFG_HOUSEHOLD_KEY = "fridgemate_household_id";
+        const CFG_LINE_URL_KEY = "fridgemate_line_url";
 
         const DEFAULT_SB_URL = "https://qsrqigptwhwtuyfnpfjy.supabase.co";
         const DEFAULT_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcnFpZ3B0d2h3dHV5Zm5wZmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MDEwNzEsImV4cCI6MjA5OTk3NzA3MX0.TShfJCiGxyLFIn6Gm_Wcw4HNQI4DLG_I-p1BTOxW21s";
         const DEFAULT_N8N_URL = "https://srv1699496.hstgr.cloud/webhook/fridgemate-upload";
+        const DEFAULT_LINE_WEBHOOK_URL = "https://srv1699496.hstgr.cloud/webhook/fridgemate-line-alert";
 
         function getSupabaseUrl() { return localStorage.getItem(CFG_URL_KEY) || DEFAULT_SB_URL; }
         function getSupabaseKey() { return localStorage.getItem(CFG_KEY_KEY) || DEFAULT_SB_KEY; }
         function getN8nUrl() { return localStorage.getItem(CFG_N8N_KEY) || DEFAULT_N8N_URL; }
+        function getLineWebhookUrl() { return localStorage.getItem(CFG_LINE_URL_KEY) || DEFAULT_LINE_WEBHOOK_URL; }
 
         let supabaseClient = null;
         let items = [];
@@ -1276,6 +1287,72 @@
             loader.classList.add('hidden');
             showPushAlert("เชื่อมต่อ AI ล้มเหลว", "กำลังใช้ระบบสแกนจำลองในเครื่องทดแทน");
             return false;
+        }
+
+        // Trigger LINE Notify/Bot alert summary webhook (MVP 2)
+        async function triggerLineWebhook() {
+            // Find active expiring/expired items (days left <= 3)
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            const expiringItems = items.filter(item => {
+                if (item.status !== 'ACTIVE') return false;
+                const expDate = new Date(item.expiry_date);
+                expDate.setHours(0,0,0,0);
+                const diffTime = expDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= 3;
+            });
+            
+            if (expiringItems.length === 0) {
+                showPushAlert("ไม่มีวัตถุดิบเร่งด่วน", "ขณะนี้ไม่มีวัตถุดิบที่ใกล้หมดอายุใน 3 วัน");
+                return;
+            }
+            
+            // Format items list for LINE payload
+            const itemsListPayload = expiringItems.map(item => {
+                const expDate = new Date(item.expiry_date);
+                expDate.setHours(0,0,0,0);
+                const diffTime = expDate - today;
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return {
+                    name: item.name,
+                    category: item.category,
+                    quantity: item.quantity,
+                    unit: item.unit,
+                    expiry_date: item.expiry_date,
+                    days_left: diffDays
+                };
+            });
+            
+            // Show sending state
+            showPushAlert("กำลังส่งแจ้งเตือน...", "กำลังส่งสรุปไปยัง LINE...");
+            
+            const lineWebhookUrl = getLineWebhookUrl();
+            try {
+                const response = await fetch(lineWebhookUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        household_id: currentHouseholdId,
+                        timestamp: new Date().toISOString(),
+                        expiring_count: expiringItems.length,
+                        items: itemsListPayload
+                    })
+                });
+                
+                if (response.ok) {
+                    showPushAlert("ส่งแจ้งเตือนสำเร็จ", "ส่งสรุปวัตถุดิบเร่งด่วนเข้า LINE เรียบร้อยแล้ว 🔔");
+                } else {
+                    console.error("LINE Webhook response error:", response.status);
+                    showPushAlert("ส่งล้มเหลว", `เซิร์ฟเวอร์ตอบกลับรหัส: ${response.status}`);
+                }
+            } catch(e) {
+                console.error("LINE Webhook connection exception:", e);
+                showPushAlert("เชื่อมต่อล้มเหลว", "ไม่สามารถส่งข้อมูลไปยัง Webhook ได้");
+            }
         }
 
         // Handle uploaded image files
