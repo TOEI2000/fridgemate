@@ -201,7 +201,7 @@
                 <div class="space-y-4 my-4 text-xs">
                     <div>
                         <label class="font-bold text-slate-600 block mb-1">Supabase Project URL</label>
-                        <input type="text" id="cfg-url" placeholder="https://xyz.supabase.co" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700">
+                        <input type="password" id="cfg-url" placeholder="https://xyz.supabase.co" class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700">
                     </div>
                     <div>
                         <label class="font-bold text-slate-600 block mb-1">Supabase Anon Key</label>
@@ -209,8 +209,12 @@
                     </div>
                     <div class="pt-2 border-t border-slate-100">
                         <label class="font-bold text-slate-600 block mb-1">n8n Webhook URL (AI Vision/Text)</label>
-                        <input type="text" id="cfg-n8n-url" placeholder="https://primary-n8n-instance/webhook/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700">
+                        <input type="password" id="cfg-n8n-url" placeholder="https://primary-n8n-instance/webhook/..." class="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-slate-700">
                         <p class="text-[10px] text-slate-400 mt-1 leading-normal">ใช้ส่งไฟล์รูปภาพ OCR/เสียงพูด ไปวิเคราะห์ผ่าน workflow n8n</p>
+                    </div>
+                    <div class="flex items-center gap-1.5 pt-1">
+                        <input type="checkbox" id="toggle-visible" onchange="toggleCredentialsVisibility(this)" class="w-3.5 h-3.5 text-emerald-500 border-slate-300 rounded focus:ring-emerald-500 cursor-pointer">
+                        <label for="toggle-visible" class="text-[10px] font-bold text-slate-500 cursor-pointer select-none">แสดงข้อมูลเชื่อมต่อ (Show Credentials)</label>
                     </div>
                     <p class="text-[10px] text-slate-450 leading-relaxed bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                         * ระบบจะจัดเก็บข้อมูลลงใน LocalStorage ของบราวเซอร์โดยอัตโนมัติหากไม่มีการระบุข้อมูล API ด้านบน
@@ -273,6 +277,11 @@
                         </div>
                         <div id="laser-line-exp" class="scan-laser hidden"></div>
                         <div id="camera-loading" class="text-xs text-slate-400 absolute hidden flex flex-col items-center gap-1"><i class="fa-solid fa-circle-notch animate-spin text-lg"></i> โหลดกล้อง...</div>
+                        
+                        <!-- Capture snapshot button -->
+                        <button id="capture-btn-exp" onclick="capturePhoto('webcam-exp')" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-4 py-2 rounded-full shadow-lg text-[10px] z-30 flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-camera"></i> <span>กดถ่ายรูปสแกน</span>
+                        </button>
                     </div>
 
                     <!-- Preset test scanning images -->
@@ -316,6 +325,11 @@
                         </div>
                         <div id="laser-line-receipt" class="scan-laser hidden"></div>
                         <div id="camera-loading-receipt" class="text-xs text-slate-400 absolute hidden flex flex-col items-center gap-1"><i class="fa-solid fa-circle-notch animate-spin text-lg"></i> โหลดกล้อง...</div>
+                        
+                        <!-- Capture receipt snapshot button -->
+                        <button id="capture-btn-receipt" onclick="capturePhoto('webcam-receipt')" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 bg-sky-500 hover:bg-sky-600 text-white font-bold px-4 py-2 rounded-full shadow-lg text-[10px] z-30 flex items-center gap-1.5 transition-all">
+                            <i class="fa-solid fa-camera"></i> <span>กดถ่ายรูปสแกน</span>
+                        </button>
                     </div>
 
                     <div class="grid grid-cols-2 gap-2">
@@ -426,6 +440,7 @@
                         <span>รายการที่สแกนพบ (กรุณาตรวจสอบ)</span>
                         <span class="text-slate-400 normal-case text-[9px] font-normal">* แตะที่กล่องเพื่อพิมพ์แก้ไขชื่อ/จำนวนได้</span>
                     </p>
+                    <div id="review-image-preview" class="hidden"></div>
                     <div id="review-items-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 no-scrollbar flex-1">
                         <!-- Populated by javascript -->
                     </div>
@@ -542,6 +557,7 @@
         let stagingItems = [];
         let currentActiveTab = 'EXP_OCR';
         let currentStream = null;
+        let currentCapturePreviewUrl = "";
 
         document.addEventListener('DOMContentLoaded', async () => {
             initSupabaseClient();
@@ -912,6 +928,13 @@
             document.getElementById('config-modal').classList.add('hidden'); 
         }
 
+        function toggleCredentialsVisibility(cb) {
+            const type = cb.checked ? "text" : "password";
+            document.getElementById('cfg-url').type = type;
+            document.getElementById('cfg-key').type = type;
+            document.getElementById('cfg-n8n-url').type = type;
+        }
+
         // Save settings configuration keys
         async function saveSupabaseConfig() {
             const url = document.getElementById('cfg-url').value.trim();
@@ -937,6 +960,12 @@
         function closeAddModal() { 
             document.getElementById('add-modal').classList.add('hidden'); 
             stagingItems = []; 
+            currentCapturePreviewUrl = "";
+            const imgPreview = document.getElementById('review-image-preview');
+            if (imgPreview) {
+                imgPreview.innerHTML = "";
+                imgPreview.classList.add('hidden');
+            }
             document.getElementById('review-area').classList.add('hidden'); 
             stopCameraStream();
         }
@@ -998,6 +1027,10 @@
                 laser.classList.remove('hidden');
                 loader.classList.add('hidden');
                 cameraToggleBtn.innerHTML = `<i class="fa-solid fa-camera-rotate text-emerald-500 animate-spin"></i> ปิดกล้องวิดีโอ`;
+                
+                // Show snapshot button
+                const capBtnId = videoId === 'webcam-exp' ? 'capture-btn-exp' : 'capture-btn-receipt';
+                document.getElementById(capBtnId).classList.remove('hidden');
             } catch(e) {
                 console.error("Camera access error:", e);
                 loader.classList.add('hidden');
@@ -1017,8 +1050,60 @@
             document.getElementById('laser-line-exp').classList.add('hidden');
             document.getElementById('laser-line-receipt').classList.add('hidden');
             
+            document.getElementById('capture-btn-exp').classList.add('hidden');
+            document.getElementById('capture-btn-receipt').classList.add('hidden');
+            
             document.getElementById('camera-toggle-btn').innerHTML = `<i class="fa-solid fa-camera text-slate-500"></i> สลับใช้งานกล้องสด`;
             document.getElementById('camera-receipt-btn').innerHTML = `<i class="fa-solid fa-camera text-slate-500"></i> สลับใช้งานกล้องสด`;
+        }
+
+        async function capturePhoto(videoId) {
+            const video = document.getElementById(videoId);
+            if (!video || !currentStream) return;
+
+            const mode = videoId === 'webcam-exp' ? 'EXP' : 'RECEIPT';
+            const laser = videoId === 'webcam-exp' ? document.getElementById('laser-line-exp') : document.getElementById('laser-line-receipt');
+
+            // Draw video frame to canvas
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 640;
+            canvas.height = video.videoHeight || 480;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            // Store Base64 preview
+            currentCapturePreviewUrl = canvas.toDataURL('image/jpeg');
+
+            // Turn off camera stream
+            stopCameraStream();
+
+            // Run visual scanner laser line on preview (simulated animation)
+            laser.classList.remove('hidden');
+
+            // Convert to Blob for upload
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], `captured-${mode.toLowerCase()}.jpg`, { type: 'image/jpeg' });
+                
+                let n8nProcessed = await uploadFileToN8n(file, mode);
+                
+                if (!n8nProcessed) {
+                    setTimeout(() => {
+                        laser.classList.add('hidden');
+                        if (mode === 'EXP') {
+                            stagingItems = [{ item_id: "item_" + Date.now(), name: "นมสดพาสเจอร์ไรส์ เมจิ", category: "Dairy", quantity: 1, unit: "ขวด", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(7), expiry_source: "OCR_PRODUCT", status: "ACTIVE" }];
+                        } else {
+                            stagingItems = [
+                                { item_id: "item_" + Date.now() + "_1", name: "เนื้อหมูสด CP", category: "Meat", quantity: 1, unit: "แพ็ค", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(3), expiry_source: "OCR_RECEIPT", status: "ACTIVE" },
+                                { item_id: "item_" + Date.now() + "_2", name: "ผักสลัดออร์แกนิค", category: "Vegetable", quantity: 1, unit: "ถุง", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(4), expiry_source: "OCR_RECEIPT", status: "ACTIVE" }
+                            ];
+                        }
+                        showReviewArea();
+                        showPushAlert("สแกนภาพสำเร็จ", `จับภาพและดึงข้อมูลจากแบบจำลองเรียบร้อย`);
+                    }, 1500);
+                } else {
+                    laser.classList.add('hidden');
+                }
+            }, 'image/jpeg');
         }
 
         // Send photos/receipt files directly to n8n webhook URL
@@ -1061,6 +1146,13 @@
         async function handleFileSelected(input, mode) {
             if (!input.files || !input.files[0]) return;
             const file = input.files[0];
+            
+            // Load base64 image preview locally
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentCapturePreviewUrl = e.target.result;
+            };
+            reader.readAsDataURL(file);
             
             // Show scanning animations
             const laser = mode === 'EXP' ? document.getElementById('laser-line-exp') : document.getElementById('laser-line-receipt');
@@ -1139,6 +1231,7 @@
             
             // Fetch mockup image path
             const imagePath = currentActiveTab === 'EXP_OCR' ? 'sample_expiry.png' : 'sample_receipt.png';
+            currentCapturePreviewUrl = imagePath;
             
             let n8nProcessed = false;
             const n8nUrl = getN8nUrl();
@@ -1377,6 +1470,21 @@
         // Render extracted reviews
         function showReviewArea() {
             const list = document.getElementById('review-items-list');
+            const imgPreview = document.getElementById('review-image-preview');
+            
+            if (currentCapturePreviewUrl) {
+                imgPreview.innerHTML = `
+                    <div class="mb-3 rounded-2xl overflow-hidden border border-slate-200 shadow-inner h-28 bg-slate-100 flex items-center justify-center relative">
+                        <img src="${currentCapturePreviewUrl}" class="w-full h-full object-cover">
+                        <div class="absolute bottom-2 right-2 bg-black/60 text-white text-[8px] font-bold px-2 py-0.5 rounded-full tracking-wider">ภาพที่ใช้สแกน</div>
+                    </div>
+                `;
+                imgPreview.classList.remove('hidden');
+            } else {
+                imgPreview.innerHTML = '';
+                imgPreview.classList.add('hidden');
+            }
+
             document.getElementById('review-count').innerText = stagingItems.length;
             list.innerHTML = '';
             
