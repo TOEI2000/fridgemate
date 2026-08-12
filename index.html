@@ -129,9 +129,10 @@
                             <span>FridgeMate</span>
                             <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-normal px-1.5 py-0.2 rounded border border-emerald-500/30">MVP 1</span>
                         </h1>
-                        <p class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                        <p class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
                             <span id="db-status-badge" class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">Cloud DB</span>
                             <span id="ai-status-badge" class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">AI Engine</span>
+                            <span id="db-error-msg" class="hidden text-rose-400 font-bold bg-rose-500/10 border border-rose-500/25 px-1.5 py-0.5 rounded text-[8px]"></span>
                         </p>
                     </div>
                 </div>
@@ -602,6 +603,18 @@
             }
         }
 
+        function updateDbErrorState(error) {
+            const errMsg = document.getElementById('db-error-msg');
+            if (!errMsg) return;
+            if (error) {
+                errMsg.innerText = `DB ERR: ${error.message} (${error.code || '404'})`;
+                errMsg.classList.remove('hidden');
+            } else {
+                errMsg.innerHTML = '';
+                errMsg.classList.add('hidden');
+            }
+        }
+
         // Retrieve items list
         async function fetchItems() {
             if (supabaseClient) {
@@ -612,15 +625,18 @@
                     if (!error && data) { 
                         items = data; 
                         renderApp(); 
+                        updateDbErrorState(null);
                         if (data.length > 0) {
                             showPushAlert("เชื่อมต่อคลาวด์สำเร็จ", `โหลดข้อมูล ${data.length} รายการแล้ว`);
                         }
                         return; 
                     } else if (error) {
+                        updateDbErrorState(error);
                         showPushAlert("ดึงข้อมูล DB ล้มเหลว", `${error.message} (${error.code || '404'})`);
                         console.error("Supabase fetch error details:", error);
                     }
                 } catch (e) {
+                    updateDbErrorState(e);
                     showPushAlert("ข้อผิดพลาดในการโหลดคลาวด์", e.message);
                     console.error("Supabase fetch exception:", e);
                 }
@@ -636,14 +652,17 @@
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').insert([newItem]);
                     if (!error) { 
+                        updateDbErrorState(null);
                         await fetchItems(); 
                         showPushAlert("บันทึกสำเร็จ", `เพิ่ม "${newItem.name}" ลงคลาวด์แล้ว`);
                         return; 
                     } else {
+                        updateDbErrorState(error);
                         showPushAlert("บันทึกลงคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
                         console.error("Supabase insert error details:", error);
                     }
                 } catch(e) {
+                    updateDbErrorState(e);
                     showPushAlert("บันทึกผิดพลาด", e.message);
                     console.error("Supabase insert exception:", e);
                 }
@@ -660,14 +679,17 @@
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').update(patchObj).eq('item_id', itemId);
                     if (!error) { 
+                        updateDbErrorState(null);
                         await fetchItems(); 
                         showPushAlert("แก้ไขสำเร็จ", "ปรับปรุงข้อมูลบนคลาวด์แล้ว");
                         return; 
                     } else {
+                        updateDbErrorState(error);
                         showPushAlert("อัปเดตคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
                         console.error("Supabase update error details:", error);
                     }
                 } catch(e) {
+                    updateDbErrorState(e);
                     showPushAlert("อัปเดตผิดพลาด", e.message);
                     console.error("Supabase update exception:", e);
                 }
@@ -690,14 +712,17 @@
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').delete().eq('item_id', itemId);
                     if (!error) { 
+                        updateDbErrorState(null);
                         await fetchItems(); 
                         showPushAlert("ลบวัตถุดิบสำเร็จ", `นำ "${itemName}" ออกจากคลาวด์แล้ว`);
                         return; 
                     } else {
+                        updateDbErrorState(error);
                         showPushAlert("ลบจากคลาวด์ล้มเหลว", `${error.message} (${error.code})`);
                         console.error("Supabase delete error details:", error);
                     }
                 } catch(e) {
+                    updateDbErrorState(e);
                     showPushAlert("ลบผิดพลาด", e.message);
                     console.error("Supabase delete exception:", e);
                 }
