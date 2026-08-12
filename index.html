@@ -127,7 +127,7 @@
                     <div>
                         <h1 class="text-lg font-bold tracking-wide flex items-center gap-1.5">
                             <span>FridgeMate</span>
-                            <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-normal px-1.5 py-0.2 rounded border border-emerald-500/30">MVP 1</span>
+                            <span class="text-[9px] bg-emerald-500/20 text-emerald-400 font-normal px-1.5 py-0.2 rounded border border-emerald-500/30">MVP 2</span>
                         </h1>
                         <p class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5 flex-wrap">
                             <span id="db-status-badge" class="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300">Cloud DB</span>
@@ -137,6 +137,12 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
+                    <!-- Household ID Pill Input -->
+                    <div class="flex items-center gap-1 bg-slate-800/80 hover:bg-slate-700/80 px-2 py-1.5 rounded-xl border border-slate-700 text-[10px] text-slate-200 transition-all">
+                        <span class="opacity-60 text-[9px] pl-1"><i class="fa-solid fa-house-user text-emerald-400"></i> บ้าน:</span>
+                        <input type="text" id="household-id-input" value="HOME123" onchange="updateHouseholdId(this.value)" class="bg-transparent border-none text-emerald-400 font-bold focus:outline-none focus:ring-0 p-0 text-[10px] w-14 text-center cursor-pointer" title="คลิกเพื่อแก้ไขรหัสบ้าน">
+                    </div>
+                    
                     <button onclick="openConfigModal()" class="w-9 h-9 flex items-center justify-center bg-slate-800/80 hover:bg-slate-700 rounded-xl transition-all border border-slate-700" title="ตั้งค่าระบบ">
                         <i class="fa-solid fa-sliders text-xs text-slate-300"></i>
                     </button>
@@ -543,6 +549,7 @@
         const CFG_URL_KEY = "fridgemate_sb_url";
         const CFG_KEY_KEY = "fridgemate_sb_key";
         const CFG_N8N_KEY = "fridgemate_n8n_url";
+        const CFG_HOUSEHOLD_KEY = "fridgemate_household_id";
 
         const DEFAULT_SB_URL = "https://qsrqigptwhwtuyfnpfjy.supabase.co";
         const DEFAULT_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcnFpZ3B0d2h3dHV5Zm5wZmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MDEwNzEsImV4cCI6MjA5OTk3NzA3MX0.TShfJCiGxyLFIn6Gm_Wcw4HNQI4DLG_I-p1BTOxW21s";
@@ -559,12 +566,24 @@
         let currentActiveTab = 'EXP_OCR';
         let currentStream = null;
         let currentCapturePreviewUrl = "";
+        let currentHouseholdId = localStorage.getItem(CFG_HOUSEHOLD_KEY) || 'HOME123';
+        let realtimeSubscription = null;
+        let pollingTimer = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             initSupabaseClient();
             initN8nClient();
+            
+            // Sync UI household input value
+            const hhInput = document.getElementById('household-id-input');
+            if (hhInput) hhInput.value = currentHouseholdId;
+            
             await fetchItems();
             document.getElementById('manual-expiry').value = getOffsetDate(4);
+            
+            // Subscribe to real-time events and setup polling
+            setupRealtimeSync();
+            setupPollingFallback();
         });
 
         // Initialize Supabase DB Client
@@ -622,17 +641,18 @@
         }
 
         // Retrieve items list
-        async function fetchItems() {
+        async function fetchItems(silent = false) {
             if (supabaseClient) {
                 try {
                     const { data, error } = await supabaseClient
                         .from('fridgemate_items')
-                        .select('*');
+                        .select('*')
+                        .eq('household_id', currentHouseholdId);
                     if (!error && data) { 
                         items = data; 
                         renderApp(); 
                         updateDbErrorState(null);
-                        if (data.length > 0) {
+                        if (data.length > 0 && !silent) {
                             showPushAlert("เชื่อมต่อคลาวด์สำเร็จ", `โหลดข้อมูล ${data.length} รายการแล้ว`);
                         }
                         return; 
@@ -654,12 +674,15 @@
 
         // Save a new item into DB / LocalStorage
         async function saveItemToDB(newItem) {
+            // Append current household ID to database item payload
+            newItem.household_id = currentHouseholdId;
+            
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').insert([newItem]);
                     if (!error) { 
                         updateDbErrorState(null);
-                        await fetchItems(); 
+                        await fetchItems(true); // reload silently
                         showPushAlert("บันทึกสำเร็จ", `เพิ่ม "${newItem.name}" ลงคลาวด์แล้ว`);
                         return; 
                     } else {
@@ -686,7 +709,7 @@
                     const { error } = await supabaseClient.from('fridgemate_items').update(patchObj).eq('item_id', itemId);
                     if (!error) { 
                         updateDbErrorState(null);
-                        await fetchItems(); 
+                        await fetchItems(true); // fetch silently
                         showPushAlert("แก้ไขสำเร็จ", "ปรับปรุงข้อมูลบนคลาวด์แล้ว");
                         return; 
                     } else {
@@ -719,7 +742,7 @@
                     const { error } = await supabaseClient.from('fridgemate_items').delete().eq('item_id', itemId);
                     if (!error) { 
                         updateDbErrorState(null);
-                        await fetchItems(); 
+                        await fetchItems(true); // fetch silently
                         showPushAlert("ลบวัตถุดิบสำเร็จ", `นำ "${itemName}" ออกจากคลาวด์แล้ว`);
                         return; 
                     } else {
@@ -737,6 +760,71 @@
             localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
             renderApp();
             showPushAlert("ลบวัตถุดิบสำเร็จ (Local)", `นำ "${itemName}" ออกจากเครื่องแล้ว`);
+        }
+
+        // Shared Household ID Actions & Realtime setup (MVP 2)
+        async function updateHouseholdId(val) {
+            const cleanVal = val.trim();
+            if (!cleanVal) return;
+            
+            currentHouseholdId = cleanVal;
+            localStorage.setItem(CFG_HOUSEHOLD_KEY, cleanVal);
+            
+            // Re-fetch items for this specific household
+            await fetchItems();
+            
+            // Re-subscribe with new filter
+            setupRealtimeSync();
+            
+            showPushAlert("สลับรหัสตู้เย็นแล้ว", `ตู้เย็นบราวเซอร์สลับเป็นตู้เย็นบ้าน "${cleanVal}" เรียบร้อย`);
+        }
+
+        function setupRealtimeSync() {
+            if (!supabaseClient) return;
+
+            if (realtimeSubscription) {
+                supabaseClient.removeChannel(realtimeSubscription);
+                realtimeSubscription = null;
+            }
+
+            try {
+                // Subscribe to public.fridgemate_items filtered by household_id
+                realtimeSubscription = supabaseClient
+                    .channel(`realtime-household-${currentHouseholdId}`)
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'fridgemate_items',
+                            filter: `household_id=eq.${currentHouseholdId}`
+                        },
+                        (payload) => {
+                            console.log('Realtime change received for this household:', payload);
+                            // Silently re-fetch items to show updates
+                            fetchItems(true);
+                        }
+                    )
+                    .subscribe((status) => {
+                        console.log(`Realtime channel status for ${currentHouseholdId}:`, status);
+                    });
+            } catch(e) {
+                console.error("Realtime subscription initialization error:", e);
+            }
+        }
+
+        function setupPollingFallback() {
+            if (pollingTimer) {
+                clearInterval(pollingTimer);
+                pollingTimer = null;
+            }
+
+            // Silent polling every 15 seconds as a secondary sync layer
+            pollingTimer = setInterval(async () => {
+                if (supabaseClient) {
+                    await fetchItems(true);
+                }
+            }, 15000);
         }
 
         // Initial setup for standard mock datasets
