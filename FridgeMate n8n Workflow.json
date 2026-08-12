@@ -146,6 +146,88 @@
       ],
       "id": "07e95f1f-b114-4516-b0ba-615154d53d4c",
       "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fridgemate-line-alert",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "line-webhook-id-0001",
+      "name": "LINE Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        1200
+      ],
+      "webhookId": "line-webhook-id-0001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $input.first().json;\nconst hh = payload.household_id || 'HOME123';\nconst count = payload.expiring_count || 0;\nconst itemsList = payload.items || [];\n\nconst listText = itemsList.map(i => `- ${i.name} (${i.quantity} ${i.unit}) เหลือ ${i.days_left} วัน`).join('\\n');\n\nconst message = `\\n[เตือนตู้เย็นส่วนรวม - บ้าน ${hh}]\\nมีวัตถุดิบใกล้หมดอายุ ${count} รายการ:\\n${listText}`;\n\nreturn [{ json: { message } }];"
+      },
+      "id": "line-format-code-0002",
+      "name": "Format LINE Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2550,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://notify-api.line.me/api/notify",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_LINE_NOTIFY_TOKEN>"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.message }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "line-http-notify-0003",
+      "name": "Send LINE Notify",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2850,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "line-respond-webhook-0004",
+      "name": "Respond to LINE Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3150,
+        1200
+      ]
     }
   ],
   "pinData": {},
@@ -217,6 +299,39 @@
         [
           {
             "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Format LINE Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format LINE Message": {
+      "main": [
+        [
+          {
+            "node": "Send LINE Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send LINE Notify": {
+      "main": [
+        [
+          {
+            "node": "Respond to LINE Webhook",
             "type": "main",
             "index": 0
           }
