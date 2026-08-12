@@ -601,7 +601,6 @@
 
         // Save a new item into DB / LocalStorage
         async function saveItemToDB(newItem) {
-            newItem.urgency_level = getUrgencyLevel(newItem.expiry_date);
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').insert([newItem]);
@@ -624,9 +623,6 @@
 
         // Update item details inside DB / LocalStorage
         async function updateItemInDB(itemId, patchObj) {
-            if (patchObj.expiry_date) {
-                patchObj.urgency_level = getUrgencyLevel(patchObj.expiry_date);
-            }
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').update(patchObj).eq('item_id', itemId);
@@ -1026,7 +1022,9 @@
             loader.classList.remove('hidden');
             
             const formData = new FormData();
+            formData.append('photo', file);
             formData.append('image', file);
+            formData.append('file', file);
             formData.append('source', source);
 
             try {

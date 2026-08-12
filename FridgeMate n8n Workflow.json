@@ -1,0 +1,239 @@
+{
+  "name": "FridgeMate AI Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "8f1b1f00-0000-4000-8000-000000000010",
+              "leftValue": "={{ Object.keys($binary).length > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5e7549e9-1c96-4ec5-b8a8-24ecf59df66f",
+      "name": "Has Photo?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2448,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const MODEL = 'google/gemini-2.5-flash-lite';\n\nconst today = new Date();\nconst todayStr = today.toISOString().split('T')[0];\n\nconst PROMPT = `คุณเป็นระบบวิเคราะห์ข้อความป้อนเข้าสำหรับแอป FridgeMate วันนี้คือวันที่ ${todayStr}\nให้วิเคราะห์ข้อความเสียงหรือข้อความพิมพ์สั่งซื้อวัตถุดิบของผู้ใช้เพื่อแยกแยะรายการวัตถุดิบ \nแล้วตอบกลับเป็นรูปแบบ JSON (ห้ามมีคำนำหรือเครื่องหมาย markdown ใดๆ ทั้งสิ้น):\n\n{\n  \"items\": [\n    {\n      \"name\": \"<ชื่อวัตถุดิบภาษาไทย>\",\n      \"category\": \"Meat|Vegetable|Egg|Dairy|Cooked Food|Fruit|Other\",\n      \"quantity\": <ตัวเลขจำนวน>,\n      \"unit\": \"<หน่วย เช่น แพ็ค/ขวด/ฟอง/ชิ้น/กิโล/ถุง>\",\n      \"expiry_date\": \"YYYY-MM-DD\"\n    }\n  ]\n}\n\nกฎการคำนวณวันหมดอายุสะสมนับจากวันนี้ (${todayStr}):\n- Meat (เนื้อสัตว์): 3 วันนับจากวันนี้\n- Vegetable (ผักสด): 4 วันนับจากวันนี้\n- Dairy (นม/เนย/ชีส): 7 วันนับจากวันนี้\n- Egg (ไข่ไก่): 14 วันนับจากวันนี้\n- Cooked Food (อาหารปรุงสุก): 3 วันนับจากวันนี้\n- Fruit (ผลไม้): 6 วันนับจากวันนี้\n- Other (อื่นๆ): 14 วันนับจากวันนี้\n\nตอบกลับด้วยข้อความ JSON ที่ถูกต้องเท่านั้น ห้ามใส่เครื่องหมายกั้น markdown หรือคำอธิบายเพิ่มเติมใดๆ`;\n\nconst text = $json.body?.text ?? $json.text ?? '';\n\nreturn [{  json: {    body: {      model: MODEL,      messages: [        {          role: 'user',          content: `${PROMPT}\\n\\nข้อความจากผู้ใช้: \"${text}\"`        }      ]    }  }}];"
+      },
+      "id": "a71efd40-2510-4466-8053-131af03f1e1b",
+      "name": "Build AI Request (Text)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        1008
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "fridgemate-upload",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a3121d8a-c234-4811-8a5b-1800eb211c9d",
+      "name": "Webhook1",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        2256,
+        880
+      ],
+      "webhookId": "a1b2c3d4-0001-4000-8000-000000000099"
+    },
+    {
+      "parameters": {
+        "jsCode": "const MODEL = 'google/gemini-2.5-flash-lite';\n\nconst today = new Date();\nconst todayStr = today.toISOString().split('T')[0];\n\nconst PROMPT = `You are FridgeMate AI, an expert OCR & Receipt Analyzer. Today's date is ${todayStr}.\nAnalyze the uploaded image (either a food product expiry label or a grocery store purchase receipt).\nIdentify all items and their expiry dates, then respond with ONLY valid JSON in this exact structure, no markdown, no explanation:\n\n{\n  \"items\": [\n    {\n      \"name\": \"<Food/Product name in Thai>\",\n      \"category\": \"Meat|Vegetable|Egg|Dairy|Cooked Food|Fruit|Other\",\n      \"quantity\": <number>,\n      \"unit\": \"<unit e.g. แพ็ค/ขวด/ฟอง/ชิ้น/กิโล/ถุง>\",\n      \"expiry_date\": \"YYYY-MM-DD\"\n    }\n  ]\n}\n\nGuidelines:\n1. Product Expiry Label Scan:\n   - Locate any expiration label text (e.g. EXP, BB, BBE, Best Before, หมดอายุ) and extract the expiration date.\n   - Convert the date to YYYY-MM-DD format.\n2. Grocery Receipt Scan:\n   - Extract all food/grocery items purchased, including their quantities and units.\n   - For each item, estimate a safe expiry date based on standard shelf life from today's date (${todayStr}):\n     - Meat (เนื้อสัตว์): 3 days from now\n     - Vegetable (ผัก): 4 days from now\n     - Dairy (นม/เนย/ชีส): 7 days from now\n     - Egg (ไข่): 14 days from now\n     - Cooked Food (อาหารปรุงสำเร็จ): 3 days from now\n     - Fruit (ผลไม้): 6 days from now\n     - Other (อื่นๆ): 14 days from now\n   - Set the calculated date in \"expiry_date\".\n\nRespond ONLY with valid JSON. Do not include markdown code fences.`;\n\nconst item = $input.first();\nconst binaryKeys = Object.keys(item.binary || {});\nconst binaryKey = binaryKeys.includes('photo') ? 'photo' : (binaryKeys[0] || 'photo');\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\nconst mime = item.binary?.[binaryKey]?.mimeType || 'image/jpeg';\nconst dataUrl = `data:${mime};base64,${buffer.toString('base64')}`;\n\nreturn [{\n  json: {\n    body: {\n      model: MODEL,\n      messages: [\n        {\n          role: 'user',\n          content: [\n            { type: 'text', text: PROMPT },\n            { type: 'image_url', image_url: { url: dataUrl } }\n          ]\n        }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "52cc1072-8bde-4214-adee-8d86eb1aad02",
+      "name": "Build AI Request1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "accbdad3-0781-4b88-9b47-458e42fd49ae",
+      "name": "OpenRouter Vision1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2864,
+        880
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "Y6EqbTsAbF34s34K",
+          "name": "Calories Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nlet text = raw.choices?.[0]?.message?.content\n  ?? raw.content ?? raw.text ?? raw.output ?? raw.response ?? '';\nif (typeof text !== 'string') {\n  text = JSON.stringify(text);\n}\n\nif (!text && raw.error) {\n  return [{ json: {\n    items: [],\n    error: true,\n    note_th: 'AI ขัดข้อง: ' + (raw.error.message || 'unknown error')\n  } }];\n}\n\nlet cleaned = text.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/```\\s*$/, '')\n  .trim();\n\nlet parsed = null;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try { parsed = JSON.parse(match[0]); } catch (e2) {}\n  }\n}\n\nif (!parsed || typeof parsed !== 'object') {\n  parsed = {\n    items: [],\n    error: true,\n    note_th: 'ไม่สามารถอ่านผลวิเคราะห์จาก AI ได้'\n  };\n}\n\nreturn [{ json: parsed }];"
+      },
+      "id": "9e17a8fc-1cb3-41cc-aa17-e68e594b7da7",
+      "name": "Parse AI Response1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3072,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "fc83d2be-32b4-4dba-9bd7-506641cef0b9",
+      "name": "Respond to Webhook1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3280,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "content": "FridgeMate AI Ingestion Flow",
+        "height": 432,
+        "width": 1568
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2032,
+        736
+      ],
+      "id": "07e95f1f-b114-4516-b0ba-615154d53d4c",
+      "name": "Sticky Note1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Has Photo?": {
+      "main": [
+        [
+          {
+            "node": "Build AI Request1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build AI Request (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Request (Text)": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Vision1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Has Photo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build AI Request1": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Vision1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Vision1": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Response1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "36d2fcf4-57f2-4404-9e5d-712e75ed9a0a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e9ecea41bf65bb1ec6c391c6d7fa6c574612746688dd019eba30937c00bd74f5"
+  },
+  "id": "LUIjDAyk2jjBeRk4",
+  "tags": []
+}
