@@ -1,194 +1,581 @@
-คุณ A ผู้เชี่ยวชาญการพัฒนาแอป และออกแบบระบบโครงสร้าง
-
-# App Development Prompt:
-
-Smart Fridge & Expiry Tracker (MVP 1)
-
-
-
-## 1. App Overview & Core Objective
-
-- **App Name:** FridgeMate (หรือชื่อชั่วคราว)
-
-- **Goal:** แอปจัดการวัตถุดิบและแจ้งเตือนวันหมดอายุในตู้เย็น เพื่อลดปัญหาขยะอาหาร (Food Waste) ด้วยการลดขั้นตอนการกรอกข้อมูลให้เหลือน้อยที่สุด (Zero-Friction Ingestion) และแจ้งเตือนอย่างตรงจุด
-
-
-
----
-
-
-
-## 2. Target Audience & Core JTBD
-
-- **User:** ผู้ใช้งานทั่วไป/วัยทำงาน ที่ซื้อของเข้าบ้าน/ตู้เย็นเป็นประจำ แต่ลืมวันหมดอายุและไม่อยากเสียเวลาจดบันทึกทีละรายการ
-
-
-
----
-
-
-
-## 3. MVP 1 Scope & Key Features
-
-
-
-### A. Item Ingestion & Input Methods (ระบบเพิ่มรายการ)
-
-1. **Expiry Date Photo Scanner (OCR - [New Feature]):**
-
-   - ถ่ายภาพป้ายวันหมดอายุบนตัวสินค้า (เช่น "EXP 15/08/2026")
-
-   - ระบบอ่านข้อความ (OCR) แล้วสกัดวันหมดอายุและชื่อสินค้าเข้าสู่ระบบให้อัตโนมัติ
-
-2. **Receipt / E-Slip Scanner (OCR):**
-
-   - ถ่ายภาพหรือแนบรูปสลิป/ใบเสร็จรับเงิน
-
-   - อ่านรายชื่อสินค้าและเพิ่มเข้าตู้เย็นพร้อมกันหลายรายการ
-
-3. **Voice Input (Natural Language Processing):**
-
-   - ถ่ายทอดด้วยเสียง เช่น *"ซื้อหมูสับ ไข่ไก่ ผักบุ้ง มาวันนี้"*
-
-   - แปลงเสียงเป็นข้อความและบันทึกรายการให้อัตโนมัติ
-
-4. **AI Auto-Expiry Estimation (Fallback Logic):**
-
-   - หากสินค้าไม่มีป้ายระบุวันหมดอายุ (เช่น ผักสด, อาหารทำเอง) AI จะกำหนดวันหมดอายุมาตรฐานให้อัตโนมัติ (เช่น ผักใบ 3-5 วัน, ไข่ไก่ 14 วัน, อาหารปรุงสุก 3 วัน)
-
-
-
-### B. Inventory & Item Management (ระบบจัดการรายการ - [New Feature])
-
-1. **Urgency-Based List View:**
-
-   - แสดงรายการวัตถุดิบจัดกลุ่มตามความเร่งด่วนของวันหมดอายุ:
-
-     - 🔴 **Red (Expiring Soon):** หมดอายุภายใน 0-1 วัน
-
-     - 🟡 **Yellow (Warning):** หมดอายุภายใน 2-4 วัน
-
-     - 🟢 **Green (Safe):** เก็บได้นานกว่า 5 วันขึ้นไป
-
-2. **Delete & Status Update (การลบและอัปเดตสถานะ):**
-
-   - **Swipe-to-Delete:** ปัดซ้ายรายการเพื่อลบออกจากระบบ
-
-   - **Mark as Consumed:** ปุ่มกดยืนยันว่า "ทานแล้ว/ใช้หมดแล้ว" เพื่อเก็บบันทึกประวัติ
-
-   - **Delete Button:** ปุ่มลบรายการในหน้าแก้ไขข้อมูล
-
-3. **Edit Item Details:**
-
-   - สามารถกดเข้าไปแก้ไขชื่อ จำนวน และปรับเปลี่ยนวันหมดอายุได้ตามต้องการ
-
-
-
-### C. Proactive Notification (การแจ้งเตือน)
-
-1. **Daily Expiry Alert:**
-
-   - แจ้งเตือนประจำวัน (Push Notification) ในช่วงเวลาที่ตั้งค่าไว้ (เช่น 08:00 น.) สรุปรายการสินค้าที่กำลังจะหมดอายุในวันนั้น
-
-
-
----
-
-
-
-## 4. UI/UX Design Guidelines
-
-
-
-### Color Palette & Visual System
-
-- **Primary Color:** Clean Fresh Green (#2ECC71)
-
-- **Urgency Indicators:** 
-
-  - Red Badge (#E74C3C) - หมดอายุวันนี้/พรุ่งนี้
-
-  - Yellow Badge (#F1C40F) - ใกล้หมดอายุ
-
-  - Green Badge (#2ECC71) - สดใหม่
-
-
-
-### Screen Breakdown
-
-
-
-#### Screen 1: Home Dashboard (หน้าหลัก)
-
-- **Header:** สรุปสถานะภาพรวม (เช่น "มีของต้องรีบกิน 3 รายการ")
-
-- **Main List:** แสดงการ์ดรายการวัตถุดิบ เรียงลำดับความเร่งด่วนจากมากไปน้อย (Red -> Yellow -> Green)
-
-- **Card Elements:** รูปสินค้า (ถ้ามี), ชื่อสินค้า, จำนวน, แถบสีและข้อความบอกวันหมดอายุ (เช่น "เหลืออีก 1 วัน")
-
-- **Interactions:**
-
-  - กดที่การ์ดเพื่อดู/แก้ไขรายละเอียด
-
-  - ปัดซ้าย (Swipe Left) เพื่อลบรายการ
-
-- **FAB (Floating Action Button):** ปุ่มกลมขนาดใหญ่ตรงกลางล่าง สำหรับกดเพิ่มรายการใหม่
-
-
-
-#### Screen 2: Smart Add Modal / Bottom Sheet (หน้าเพิ่มรายการ)
-
-- **Option Selectors:**
-
-  - 📷 **Scan Expiry Date:** เปิดกล้องถ่ายป้าย EXP บนสินค้า
-
-  - 🧾 **Scan Receipt:** ถ่ายใบเสร็จรับเงิน
-
-  - 🎙️ **Voice Add:** กดค้างเพื่อพูดบันทึกเสียง
-
-  - ✏️ **Manual Input:** ฟอร์มกรอกข้อมูลทั่วไป
-
-- **Review Screen:** หน้าแสดงผลการสกัดข้อมูล ให้ผู้ใช้ตรวจสอบและกดยืนยันก่อนบันทึกเข้าตู้
-
-
-
-#### Screen 3: Item Detail & Edit Screen (หน้ารายละเอียดและแก้ไข)
-
-- ฟิลด์แสดงผล: ชื่อสินค้า, หมวดหมู่, จำนวน, วันที่ซื้อ, วันหมดอายุ
-
-- ปุ่ม **"ใช้แล้ว (Mark as Consumed)"** และ ปุ่ม **"ลบรายการ (Delete Item)"**
-
-
-
----
-
-
-
-## 5. Data Schema Concept (โครงสร้างข้อมูลพื้นฐาน)
-
-```json
-
-{
-
-  "item_id": "string",
-
-  "name": "string",
-
-  "category": "string (e.g., Meat, Vegetable, Dairy, Cooked Food)",
-
-  "quantity": "number",
-
-  "unit": "string (e.g., pcs, kg, pack)",
-
-  "purchase_date": "date",
-
-  "expiry_date": "date",
-
-  "expiry_source": "enum (OCR_PRODUCT, OCR_RECEIPT, VOICE, AI_ESTIMATE, MANUAL)",
-
-  "status": "enum (ACTIVE, CONSUMED, DELETED)",
-
-  "urgency_level": "enum (RED, YELLOW, GREEN)"
-
-} 
-
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FridgeMate - Smart Fridge & Expiry Tracker</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Kanit -->
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase JS Client v2 -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        fresh: '#2ECC71',
+                        urgency: { red: '#E74C3C', yellow: '#F1C40F', green: '#2ECC71' }
+                    },
+                    fontFamily: { kanit: ['Kanit', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Kanit', sans-serif; background-color: #f3f4f6; }
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { transform: translateY(100%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .fade-in { animation: fadeIn 0.2s ease-in forwards; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body class="bg-slate-100 min-h-screen text-slate-800 flex justify-center items-center p-0 sm:p-4">
+
+    <!-- Mobile App Container -->
+    <div class="w-full max-w-md bg-white min-h-screen sm:min-h-[840px] sm:h-[840px] sm:rounded-3xl shadow-2xl flex flex-col relative overflow-hidden border border-slate-200">
+        
+        <!-- Header -->
+        <header class="bg-gradient-to-r from-emerald-600 to-green-500 text-white p-4 pt-6 shadow-md relative z-10">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center gap-2">
+                    <div class="w-10 h-10 bg-white/20 backdrop-blur-md rounded-2xl flex items-center justify-center text-xl">🧊</div>
+                    <div>
+                        <h1 class="text-xl font-bold tracking-wide">FridgeMate</h1>
+                        <p class="text-xs text-emerald-100 flex items-center gap-1">
+                            <span>จัดการวัตถุดิบ</span>
+                            <span id="db-status-badge" class="bg-white/20 px-1.5 py-0.2 rounded text-[10px]">Cloud DB</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                    <button onclick="openConfigModal()" class="p-2 bg-white/15 hover:bg-white/25 rounded-xl transition text-xs border border-white/20" title="ตั้งค่า Supabase">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <button onclick="triggerDailyAlert()" class="p-2 bg-white/15 hover:bg-white/25 rounded-xl transition text-xs font-medium border border-white/20">
+                        <i class="fa-solid fa-bell text-amber-300 animate-pulse"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Summary Status Banner -->
+            <div id="summary-banner" class="mt-4 bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div id="summary-icon-bg" class="w-9 h-9 rounded-xl bg-rose-500 text-white font-bold text-sm shadow flex items-center justify-center">
+                        <span id="red-count">0</span>
+                    </div>
+                    <div>
+                        <p id="summary-title" class="text-xs text-emerald-100">สถานะวัตถุดิบเร่งด่วน</p>
+                        <p id="summary-text" class="text-sm font-semibold">กำลังโหลด...</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-white/20 px-2.5 py-1 rounded-full text-emerald-50">MVP 1</span>
+            </div>
+        </header>
+
+        <!-- Filter Tabs -->
+        <div class="bg-white border-b border-slate-100 p-2 flex gap-1.5 overflow-x-auto text-xs font-medium no-scrollbar">
+            <button onclick="setFilter('ALL')" id="filter-ALL" class="px-3 py-2 rounded-xl bg-emerald-500 text-white shadow-sm">ทั้งหมด (<span id="count-all">0</span>)</button>
+            <button onclick="setFilter('RED')" id="filter-RED" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-600">🔴 ต้องรีบกิน (<span id="count-red">0</span>)</button>
+            <button onclick="setFilter('YELLOW')" id="filter-YELLOW" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-600">🟡 ใกล้หมดอายุ (<span id="count-yellow">0</span>)</button>
+            <button onclick="setFilter('GREEN')" id="filter-GREEN" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-600">🟢 สดใหม่ (<span id="count-green">0</span>)</button>
+            <button onclick="setFilter('CONSUMED')" id="filter-CONSUMED" class="px-3 py-2 rounded-xl bg-slate-100 text-slate-600">✓ ทานแล้ว (<span id="count-consumed">0</span>)</button>
+        </div>
+
+        <!-- Main Items List -->
+        <main class="flex-1 overflow-y-auto p-4 space-y-3 pb-24" id="item-list-container"></main>
+
+        <!-- Floating Add Button -->
+        <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-white via-white/90 to-transparent flex justify-center pointer-events-none z-20">
+            <button onclick="openAddModal()" class="pointer-events-auto bg-gradient-to-r from-emerald-500 to-green-600 text-white font-semibold py-3.5 px-6 rounded-full shadow-lg flex items-center gap-2 text-sm">
+                <i class="fa-solid fa-plus text-lg"></i>
+                <span>เพิ่มวัตถุดิบใหม่</span>
+            </button>
+        </div>
+
+        <!-- MODAL: Config Supabase Connection -->
+        <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 fade-in">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl border border-slate-100">
+                <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-database text-emerald-500"></i> ตั้งค่า Supabase Project
+                    </h3>
+                    <button onclick="closeConfigModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div class="space-y-3 my-3 text-xs">
+                    <div>
+                        <label class="font-semibold text-slate-600 block mb-1">Supabase URL</label>
+                        <input type="text" id="cfg-url" placeholder="https://xyz.supabase.co" class="w-full p-2.5 rounded-xl border border-slate-200">
+                    </div>
+                    <div>
+                        <label class="font-semibold text-slate-600 block mb-1">Supabase Anon Key</label>
+                        <input type="password" id="cfg-key" placeholder="eyJhbGciOi..." class="w-full p-2.5 rounded-xl border border-slate-200">
+                    </div>
+                    <p class="text-[11px] text-slate-400 leading-relaxed">* ใส่ URL และ Key ของโปรเจกต์เดิมใน Supabase เพื่อเชื่อมต่อตาราง <code>fridgemate_items</code></p>
+                </div>
+                <button onclick="saveSupabaseConfig()" class="w-full py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow">
+                    บันทึกและเชื่อมต่อ Database
+                </button>
+            </div>
+        </div>
+
+        <!-- MODAL: Smart Add Modal -->
+        <div id="add-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center fade-in">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl max-h-[90vh] overflow-y-auto slide-up border border-slate-100">
+                <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span class="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-xs">✨</span>
+                        เพิ่มวัตถุดิบเข้าตู้เย็น
+                    </h2>
+                    <button onclick="closeAddModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 my-4">
+                    <button onclick="switchIngestTab('EXP_OCR')" id="tab-EXP_OCR" class="ingest-tab p-3 rounded-2xl border text-center flex flex-col items-center gap-1.5 border-emerald-500 bg-emerald-50 text-emerald-700">
+                        <i class="fa-solid fa-camera text-xl"></i><span class="text-[10px] font-medium">สแกน EXP</span>
+                    </button>
+                    <button onclick="switchIngestTab('RECEIPT')" id="tab-RECEIPT" class="ingest-tab p-3 rounded-2xl border border-slate-200 text-center flex flex-col items-center gap-1.5 text-slate-600">
+                        <i class="fa-solid fa-receipt text-xl"></i><span class="text-[10px] font-medium">สแกนใบเสร็จ</span>
+                    </button>
+                    <button onclick="switchIngestTab('VOICE')" id="tab-VOICE" class="ingest-tab p-3 rounded-2xl border border-slate-200 text-center flex flex-col items-center gap-1.5 text-slate-600">
+                        <i class="fa-solid fa-microphone text-xl"></i><span class="text-[10px] font-medium">สั่งด้วยเสียง</span>
+                    </button>
+                    <button onclick="switchIngestTab('MANUAL')" id="tab-MANUAL" class="ingest-tab p-3 rounded-2xl border border-slate-200 text-center flex flex-col items-center gap-1.5 text-slate-600">
+                        <i class="fa-solid fa-pen-to-square text-xl"></i><span class="text-[10px] font-medium">พิมพ์กรอก</span>
+                    </button>
+                </div>
+
+                <div id="panel-EXP_OCR" class="ingest-panel space-y-3">
+                    <div class="border-2 border-dashed border-emerald-300 bg-emerald-50/50 rounded-2xl p-4 text-center cursor-pointer" onclick="simulateExpiryOCR()">
+                        <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto text-xl mb-2"><i class="fa-solid fa-camera-retro"></i></div>
+                        <p class="text-xs font-semibold text-emerald-800">แตะเพื่อสแกนป้ายวันหมดอายุสินค้า (OCR)</p>
+                    </div>
+                </div>
+
+                <div id="panel-RECEIPT" class="ingest-panel space-y-3 hidden">
+                    <div class="border-2 border-dashed border-sky-300 bg-sky-50/50 rounded-2xl p-4 text-center cursor-pointer" onclick="simulateReceiptOCR()">
+                        <div class="w-12 h-12 bg-sky-100 text-sky-600 rounded-full flex items-center justify-center mx-auto text-xl mb-2"><i class="fa-solid fa-file-invoice"></i></div>
+                        <p class="text-xs font-semibold text-sky-800">แตะเพื่อสแกนใบเสร็จซื้อของ (Multi-Item)</p>
+                    </div>
+                </div>
+
+                <div id="panel-VOICE" class="ingest-panel space-y-3 hidden">
+                    <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-center">
+                        <button onclick="simulateVoiceInput()" class="w-16 h-16 bg-amber-500 text-white rounded-full flex items-center justify-center mx-auto text-2xl shadow-lg mb-2"><i class="fa-solid fa-microphone animate-pulse"></i></button>
+                        <p class="text-xs font-semibold text-amber-900">กดไมค์พูดบันทึก เช่น "ซื้อหมูสับ ไข่ไก่ ผักบุ้ง"</p>
+                    </div>
+                </div>
+
+                <div id="panel-MANUAL" class="ingest-panel space-y-3 hidden">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1">ชื่อวัตถุดิบ *</label>
+                        <input type="text" id="manual-name" placeholder="ผักคะน้า, อกไก่" class="w-full text-sm p-2.5 rounded-xl border border-slate-200">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1">หมวดหมู่</label>
+                            <select id="manual-category" onchange="autoEstimateDays()" class="w-full text-sm p-2.5 rounded-xl border border-slate-200">
+                                <option value="Meat">🥩 เนื้อสัตว์ (3-4 วัน)</option>
+                                <option value="Vegetable">🥦 ผักสด (3-5 วัน)</option>
+                                <option value="Egg">🥚 ไข่ไก่ (14 วัน)</option>
+                                <option value="Dairy">🥛 นม/เนย (7-10 วัน)</option>
+                                <option value="Cooked Food">🍱 อาหารปรุงสุก (3 วัน)</option>
+                                <option value="Fruit">🍎 ผลไม้ (5-7 วัน)</option>
+                                <option value="Other">🥫 อื่น ๆ (14 วัน)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1">จำนวน & หน่วย</label>
+                            <div class="flex gap-1">
+                                <input type="number" id="manual-quantity" value="1" min="1" class="w-16 text-sm p-2.5 rounded-xl border text-center">
+                                <input type="text" id="manual-unit" value="แพ็ค" class="flex-1 text-sm p-2.5 rounded-xl border">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1">วันหมดอายุ *</label>
+                        <input type="date" id="manual-expiry" class="w-full text-sm p-2.5 rounded-xl border">
+                    </div>
+                    <button onclick="saveManualItem()" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-sm shadow">
+                        บันทึกเข้าตู้เย็น
+                    </button>
+                </div>
+
+                <div id="review-area" class="mt-4 pt-3 border-t border-slate-100 hidden">
+                    <div id="review-items-list" class="space-y-2 max-h-48 overflow-y-auto"></div>
+                    <button onclick="confirmReviewItems()" class="w-full mt-3 py-3 bg-emerald-500 text-white font-bold rounded-xl text-sm shadow">
+                        ยืนยันบันทึกข้อมูล (<span id="review-count">0</span>)
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Item Detail & Edit -->
+        <div id="edit-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 fade-in">
+            <div class="bg-white w-full max-w-md rounded-t-3xl sm:rounded-3xl p-5 shadow-2xl slide-up border border-slate-100">
+                <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <span id="edit-emoji" class="text-2xl">🥩</span>
+                        <span id="edit-title">รายละเอียดวัตถุดิบ</span>
+                    </h2>
+                    <button onclick="closeEditModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+                </div>
+
+                <input type="hidden" id="edit-item-id">
+                
+                <div class="space-y-3 my-4 text-sm">
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1">ชื่อวัตถุดิบ</label>
+                        <input type="text" id="edit-name" class="w-full p-2.5 rounded-xl border border-slate-200">
+                    </div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1">หมวดหมู่</label>
+                            <select id="edit-category" class="w-full p-2.5 rounded-xl border border-slate-200">
+                                <option value="Meat">🥩 เนื้อสัตว์</option>
+                                <option value="Vegetable">🥦 ผักสด</option>
+                                <option value="Egg">🥚 ไข่ไก่</option>
+                                <option value="Dairy">🥛 นม/เนย</option>
+                                <option value="Cooked Food">🍱 อาหารปรุงสุก</option>
+                                <option value="Fruit">🍎 ผลไม้</option>
+                                <option value="Other">🥫 อื่น ๆ</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="text-xs font-semibold text-slate-600 block mb-1">จำนวน</label>
+                            <div class="flex gap-1">
+                                <input type="number" id="edit-quantity" class="w-16 p-2.5 text-center rounded-xl border">
+                                <input type="text" id="edit-unit" class="flex-1 p-2.5 rounded-xl border">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-xs font-semibold text-slate-600 block mb-1">วันหมดอายุ</label>
+                        <input type="date" id="edit-expiry-date" class="w-full p-2.5 rounded-xl border">
+                    </div>
+                </div>
+
+                <div class="space-y-2 pt-2 border-t border-slate-100">
+                    <button onclick="saveEditChanges()" class="w-full py-2.5 bg-emerald-500 text-white font-semibold rounded-xl text-sm shadow">บันทึกการแก้ไข</button>
+                    <div class="grid grid-cols-2 gap-2">
+                        <button onclick="markCurrentAsConsumed()" class="py-2 bg-emerald-50 text-emerald-700 font-semibold rounded-xl text-xs border border-emerald-200">ทานแล้ว (Consumed)</button>
+                        <button onclick="deleteCurrentItem()" class="py-2 bg-rose-50 text-rose-600 font-semibold rounded-xl text-xs border border-rose-200">ลบรายการ (Delete)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODAL: Alert Simulator -->
+        <div id="alert-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 fade-in">
+            <div class="bg-white w-full max-w-sm rounded-3xl p-5 shadow-2xl slide-up border border-amber-100 text-center">
+                <div class="w-12 h-12 bg-amber-100 text-amber-500 rounded-full flex items-center justify-center text-xl mx-auto mb-2"><i class="fa-solid fa-bell animate-bounce"></i></div>
+                <h3 class="text-base font-bold text-slate-800">สรุปวัตถุดิบใกล้หมดอายุประจำวัน</h3>
+                <div id="alert-items-list" class="my-3 space-y-2 max-h-52 overflow-y-auto text-xs text-left"></div>
+                <button onclick="closeAlertModal()" class="w-full py-2 bg-slate-800 text-white font-semibold rounded-xl text-xs">รับทราบ</button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Application Script Logic -->
+    <script>
+        const CFG_URL_KEY = "fridgemate_sb_url";
+        const CFG_KEY_KEY = "fridgemate_sb_key";
+
+        let supabaseClient = null;
+        let items = [];
+        let currentFilter = 'ALL';
+        let stagingItems = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            initSupabaseClient();
+            await fetchItems();
+            document.getElementById('manual-expiry').value = getOffsetDate(4);
+        });
+
+        function initSupabaseClient() {
+            const url = localStorage.getItem(CFG_URL_KEY) || "";
+            const key = localStorage.getItem(CFG_KEY_KEY) || "";
+
+            if (url && key && window.supabase) {
+                try {
+                    supabaseClient = window.supabase.createClient(url, key);
+                    document.getElementById('db-status-badge').innerText = "Supabase DB";
+                    document.getElementById('db-status-badge').className = "bg-emerald-400/30 text-white px-1.5 py-0.2 rounded text-[10px]";
+                } catch(e) { supabaseClient = null; }
+            } else {
+                document.getElementById('db-status-badge').innerText = "LocalStorage";
+                document.getElementById('db-status-badge').className = "bg-white/20 text-white px-1.5 py-0.2 rounded text-[10px]";
+            }
+        }
+
+        async function fetchItems() {
+            if (supabaseClient) {
+                const { data, error } = await supabaseClient.from('fridgemate_items').select('*');
+                if (!error && data) { items = data; renderApp(); return; }
+            }
+            const stored = localStorage.getItem('fridgemate_items_v1');
+            items = stored ? JSON.parse(stored) : getInitialMockData();
+            renderApp();
+        }
+
+        async function saveItemToDB(newItem) {
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('fridgemate_items').insert([newItem]);
+                if (!error) { await fetchItems(); return; }
+            }
+            items.push(newItem);
+            localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
+            renderApp();
+        }
+
+        async function updateItemInDB(itemId, patchObj) {
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('fridgemate_items').update(patchObj).eq('item_id', itemId);
+                if (!error) { await fetchItems(); return; }
+            }
+            const item = items.find(i => i.item_id === itemId);
+            if (item) Object.assign(item, patchObj);
+            localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
+            renderApp();
+        }
+
+        async function deleteItemFromDB(itemId) {
+            if (supabaseClient) {
+                const { error } = await supabaseClient.from('fridgemate_items').delete().eq('item_id', itemId);
+                if (!error) { await fetchItems(); return; }
+            }
+            items = items.filter(i => i.item_id !== itemId);
+            localStorage.setItem('fridgemate_items_v1', JSON.stringify(items));
+            renderApp();
+        }
+
+        function getInitialMockData() {
+            return [
+                { item_id: "item_01", name: "หมูสับสด", category: "Meat", quantity: 1, unit: "แพ็ค", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(1), expiry_source: "OCR_PRODUCT", status: "ACTIVE" },
+                { item_id: "item_02", name: "ผักบุ้งจีน", category: "Vegetable", quantity: 1, unit: "กำ", purchase_date: getOffsetDate(-1), expiry_date: getOffsetDate(2), expiry_source: "AI_ESTIMATE", status: "ACTIVE" },
+                { item_id: "item_03", name: "นมสดพาสเจอร์ไรส์ 830ml", category: "Dairy", quantity: 1, unit: "ขวด", purchase_date: getOffsetDate(-2), expiry_date: getOffsetDate(3), expiry_source: "OCR_RECEIPT", status: "ACTIVE" }
+            ];
+        }
+
+        function getOffsetDate(days) {
+            const d = new Date(); d.setDate(d.getDate() + days); return d.toISOString().split('T')[0];
+        }
+
+        function getCategoryEmoji(cat) {
+            switch(cat) {
+                case 'Meat': return '🥩'; case 'Vegetable': return '🥦'; case 'Egg': return '🥚';
+                case 'Dairy': return '🥛'; case 'Cooked Food': return '🍱'; case 'Fruit': return '🍎';
+                default: return '🥫';
+            }
+        }
+
+        function getDaysRemaining(expiryDateStr) {
+            const today = new Date(); today.setHours(0,0,0,0);
+            const exp = new Date(expiryDateStr); exp.setHours(0,0,0,0);
+            return Math.ceil((exp - today) / (1000 * 60 * 60 * 24));
+        }
+
+        function getUrgencyLevel(expiryDateStr) {
+            const daysLeft = getDaysRemaining(expiryDateStr);
+            if (daysLeft <= 1) return 'RED';
+            if (daysLeft <= 4) return 'YELLOW';
+            return 'GREEN';
+        }
+
+        function setFilter(filter) { currentFilter = filter; renderApp(); }
+
+        function renderApp() {
+            const container = document.getElementById('item-list-container');
+            container.innerHTML = '';
+
+            let countAll=0, countRed=0, countYellow=0, countGreen=0, countConsumed=0;
+            items.forEach(item => {
+                if (item.status === 'CONSUMED') { countConsumed++; return; }
+                countAll++;
+                const u = getUrgencyLevel(item.expiry_date);
+                if (u === 'RED') countRed++;
+                else if (u === 'YELLOW') countYellow++;
+                else if (u === 'GREEN') countGreen++;
+            });
+
+            document.getElementById('count-all').innerText = countAll;
+            document.getElementById('count-red').innerText = countRed;
+            document.getElementById('count-yellow').innerText = countYellow;
+            document.getElementById('count-green').innerText = countGreen;
+            document.getElementById('count-consumed').innerText = countConsumed;
+            document.getElementById('red-count').innerText = countRed;
+
+            const summaryTitle = document.getElementById('summary-title');
+            const summaryText = document.getElementById('summary-text');
+            if (countRed > 0) {
+                summaryTitle.innerText = "🚨 วัตถุดิบต้องรีบรับประทาน";
+                summaryText.innerText = `มีของต้องรีบกิน ${countRed} รายการ (หมดอายุ 0-1 วัน)`;
+            } else if (countYellow > 0) {
+                summaryTitle.innerText = "⚠️ วัตถุดิบใกล้หมดอายุ";
+                summaryText.innerText = `มีของใกล้หมดอายุ ${countYellow} รายการ (2-4 วัน)`;
+            } else {
+                summaryTitle.innerText = "✅ วัตถุดิบสดใหม่ดี";
+                summaryText.innerText = `วัตถุดิบทั้งหมด ${countAll} รายการสภาพดี`;
+            }
+
+            let filtered = items.filter(item => {
+                if (currentFilter === 'CONSUMED') return item.status === 'CONSUMED';
+                if (item.status !== 'ACTIVE') return false;
+                const u = getUrgencyLevel(item.expiry_date);
+                if (currentFilter === 'RED') return u === 'RED';
+                if (currentFilter === 'YELLOW') return u === 'YELLOW';
+                if (currentFilter === 'GREEN') return u === 'GREEN';
+                return true;
+            });
+
+            filtered.sort((a,b) => new Date(a.expiry_date) - new Date(b.expiry_date));
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-center text-xs text-slate-400 py-10">ไม่พบรายการในหมวดนี้</p>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                const daysLeft = getDaysRemaining(item.expiry_date);
+                const urgency = getUrgencyLevel(item.expiry_date);
+                const badgeText = daysLeft <= 0 ? "หมดอายุวันนี้!" : `เหลืออีก ${daysLeft} วัน`;
+                const badgeClass = urgency === 'RED' ? 'bg-rose-100 text-rose-700' : (urgency === 'YELLOW' ? 'bg-amber-100 text-amber-800' : 'bg-emerald-100 text-emerald-700');
+
+                container.innerHTML += `
+                    <div class="bg-white rounded-2xl p-3.5 shadow-sm border flex items-center justify-between gap-2">
+                        <div class="flex items-center gap-3 flex-1" onclick="openEditModal('${item.item_id}')">
+                            <span class="text-2xl">${getCategoryEmoji(item.category)}</span>
+                            <div>
+                                <h3 class="font-bold text-slate-800 text-sm">${item.name}</h3>
+                                <p class="text-xs text-slate-500">${item.quantity} ${item.unit} · EXP: ${item.expiry_date}</p>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end gap-1">
+                            <span class="text-[10px] px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
+                            ${item.status === 'ACTIVE' ? `
+                            <button onclick="markAsConsumed('${item.item_id}')" class="text-xs text-emerald-600 bg-emerald-50 px-2 py-1 rounded">✓ ทานแล้ว</button>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function openConfigModal() {
+            document.getElementById('cfg-url').value = localStorage.getItem(CFG_URL_KEY) || "";
+            document.getElementById('cfg-key').value = localStorage.getItem(CFG_KEY_KEY) || "";
+            document.getElementById('config-modal').classList.remove('hidden');
+        }
+
+        function closeConfigModal() { document.getElementById('config-modal').classList.add('hidden'); }
+
+        async function saveSupabaseConfig() {
+            const url = document.getElementById('cfg-url').value.trim();
+            const key = document.getElementById('cfg-key').value.trim();
+            localStorage.setItem(CFG_URL_KEY, url);
+            localStorage.setItem(CFG_KEY_KEY, key);
+            closeConfigModal();
+            initSupabaseClient();
+            await fetchItems();
+        }
+
+        function openAddModal() { document.getElementById('add-modal').classList.remove('hidden'); }
+        function closeAddModal() { document.getElementById('add-modal').classList.add('hidden'); stagingItems = []; document.getElementById('review-area').classList.add('hidden'); }
+
+        function switchIngestTab(tab) {
+            document.querySelectorAll('.ingest-panel').forEach(p => p.classList.add('hidden'));
+            document.getElementById(`panel-${tab}`).classList.remove('hidden');
+        }
+
+        function simulateExpiryOCR() {
+            stagingItems = [{ item_id: "item_" + Date.now(), name: "หมูสด 500g", category: "Meat", quantity: 1, unit: "แพ็ค", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(1), expiry_source: "OCR_PRODUCT", status: "ACTIVE" }];
+            showReviewArea();
+        }
+
+        function simulateReceiptOCR() {
+            stagingItems = [
+                { item_id: "item_" + Date.now() + "_1", name: "อกไก่สด", category: "Meat", quantity: 1, unit: "แพ็ค", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(3), expiry_source: "OCR_RECEIPT", status: "ACTIVE" },
+                { item_id: "item_" + Date.now() + "_2", name: "ผักสลัด", category: "Vegetable", quantity: 1, unit: "ถุง", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(4), expiry_source: "OCR_RECEIPT", status: "ACTIVE" }
+            ];
+            showReviewArea();
+        }
+
+        function simulateVoiceInput() {
+            stagingItems = [{ item_id: "item_" + Date.now(), name: "ไข่ไก่สด", category: "Egg", quantity: 10, unit: "ฟอง", purchase_date: getOffsetDate(0), expiry_date: getOffsetDate(14), expiry_source: "VOICE", status: "ACTIVE" }];
+            showReviewArea();
+        }
+
+        function autoEstimateDays() {
+            const cat = document.getElementById('manual-category').value;
+            let days = 4;
+            if (cat === 'Meat') days = 3;
+            else if (cat === 'Vegetable') days = 4;
+            else if (cat === 'Egg') days = 14;
+            else if (cat === 'Dairy') days = 7;
+            else if (cat === 'Cooked Food') days = 3;
+            else if (cat === 'Fruit') days = 5;
+            else days = 14;
+            document.getElementById('manual-expiry').value = getOffsetDate(days);
+        }
+
+        function showReviewArea() {
+            const list = document.getElementById('review-items-list');
+            document.getElementById('review-count').innerText = stagingItems.length;
+            list.innerHTML = '';
+            stagingItems.forEach(item => {
+                list.innerHTML += `<div class="p-2 bg-slate-50 border rounded text-xs flex justify-between"><span>${item.name}</span><span>EXP: ${item.expiry_date}</span></div>`;
+            });
+            document.getElementById('review-area').classList.remove('hidden');
+        }
+
+        async function confirmReviewItems() {
+            for (const item of stagingItems) { await saveItemToDB(item); }
+            closeAddModal();
+        }
+
+        async function saveManualItem() {
+            const name = document.getElementById('manual-name').value.trim();
+            if (!name) return;
+            const newItem = {
+                item_id: "item_" + Date.now(),
+                name: name,
+                category: document.getElementById('manual-category').value,
+                quantity: parseInt(document.getElementById('manual-quantity').value) || 1,
+                unit: document.getElementById('manual-unit').value || "แพ็ค",
+                purchase_date: getOffsetDate(0),
+                expiry_date: document.getElementById('manual-expiry').value || getOffsetDate(3),
+                expiry_source: "MANUAL",
+                status: "ACTIVE"
+            };
+            await saveItemToDB(newItem);
+            closeAddModal();
+        }
+
+        function openEditModal(itemId) {
+            const item = items.find(i => i.item_id === itemId);
+            if (!item) return;
+            document.getElementById('edit-item-id').value = item.item_id;
+            document.getElementById('edit-name').value = item.name;
+            document.getElementById('edit-category').value = item.category;
+            document.getElementById('edit-quantity').value = item.quantity;
+            document.getElementById('edit-unit').value = item.unit;
+            document.getElementById('edit-expiry-date').value = item.expiry_date;
+            document.getElementById('edit-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+
+        async function saveEditChanges() {
+            const id = document.getElementById('edit-item-id').value;
+            await updateItemInDB(id, {
+                name: document.getElementById('edit-name').value,
+                category: document.getElementById('edit-category').value,
+                quantity: parseInt(document.getElementById('edit-quantity').value) || 1,
+                unit: document.getElementById('edit-unit').value,
+                expiry_date: document.getElementById('edit-expiry-date').value
+            });
+            closeEditModal
