@@ -528,6 +528,14 @@
         const CFG_KEY_KEY = "fridgemate_sb_key";
         const CFG_N8N_KEY = "fridgemate_n8n_url";
 
+        const DEFAULT_SB_URL = "https://jztqmxrjkmunxncjdmyw.supabase.co";
+        const DEFAULT_SB_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6dHFteHJqa211bnhuY2pkbXl3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODY0NjQxODIsImV4cCI6MjEwMjA0MDE4Mn0.Jzp7Rd-z1UJ01usM-HkNFYfWpmjBclihId8OZLE1Aus";
+        const DEFAULT_N8N_URL = "https://srv1699496.hstgr.cloud/webhook/fridgemate-upload";
+
+        function getSupabaseUrl() { return localStorage.getItem(CFG_URL_KEY) || DEFAULT_SB_URL; }
+        function getSupabaseKey() { return localStorage.getItem(CFG_KEY_KEY) || DEFAULT_SB_KEY; }
+        function getN8nUrl() { return localStorage.getItem(CFG_N8N_KEY) || DEFAULT_N8N_URL; }
+
         let supabaseClient = null;
         let items = [];
         let currentFilter = 'ALL';
@@ -544,8 +552,8 @@
 
         // Initialize Supabase DB Client
         function initSupabaseClient() {
-            const url = localStorage.getItem(CFG_URL_KEY) || "";
-            const key = localStorage.getItem(CFG_KEY_KEY) || "";
+            const url = getSupabaseUrl();
+            const key = getSupabaseKey();
             const badge = document.getElementById('db-status-badge');
 
             if (url && key && window.supabase) {
@@ -567,7 +575,7 @@
 
         // Initialize n8n client status badge
         function initN8nClient() {
-            const n8nUrl = localStorage.getItem(CFG_N8N_KEY) || "";
+            const n8nUrl = getN8nUrl();
             const badge = document.getElementById('ai-status-badge');
             if (n8nUrl) {
                 badge.innerText = "n8n AI Connect";
@@ -894,9 +902,9 @@
 
         // Open config modal dashboard
         function openConfigModal() {
-            document.getElementById('cfg-url').value = localStorage.getItem(CFG_URL_KEY) || "";
-            document.getElementById('cfg-key').value = localStorage.getItem(CFG_KEY_KEY) || "";
-            document.getElementById('cfg-n8n-url').value = localStorage.getItem(CFG_N8N_KEY) || "";
+            document.getElementById('cfg-url').value = localStorage.getItem(CFG_URL_KEY) || DEFAULT_SB_URL;
+            document.getElementById('cfg-key').value = localStorage.getItem(CFG_KEY_KEY) || DEFAULT_SB_KEY;
+            document.getElementById('cfg-n8n-url').value = localStorage.getItem(CFG_N8N_KEY) || DEFAULT_N8N_URL;
             document.getElementById('config-modal').classList.remove('hidden');
         }
 
@@ -1015,7 +1023,7 @@
 
         // Send photos/receipt files directly to n8n webhook URL
         async function uploadFileToN8n(file, source) {
-            const n8nUrl = localStorage.getItem(CFG_N8N_KEY) || "";
+            const n8nUrl = getN8nUrl();
             if (!n8nUrl) return false;
 
             const loader = document.getElementById('ocr-loader');
@@ -1133,7 +1141,7 @@
             const imagePath = currentActiveTab === 'EXP_OCR' ? 'sample_expiry.png' : 'sample_receipt.png';
             
             let n8nProcessed = false;
-            const n8nUrl = localStorage.getItem(CFG_N8N_KEY) || "";
+            const n8nUrl = getN8nUrl();
 
             if (n8nUrl) {
                 try {
@@ -1246,7 +1254,7 @@
                 return;
             }
 
-            const n8nUrl = localStorage.getItem(CFG_N8N_KEY) || "";
+            const n8nUrl = getN8nUrl();
             let n8nProcessed = false;
 
             if (n8nUrl) {
