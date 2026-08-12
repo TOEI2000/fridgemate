@@ -1,0 +1,194 @@
+คุณ A ผู้เชี่ยวชาญการพัฒนาแอป และออกแบบระบบโครงสร้าง
+
+# App Development Prompt:
+
+Smart Fridge & Expiry Tracker (MVP 1)
+
+
+
+## 1. App Overview & Core Objective
+
+- **App Name:** FridgeMate (หรือชื่อชั่วคราว)
+
+- **Goal:** แอปจัดการวัตถุดิบและแจ้งเตือนวันหมดอายุในตู้เย็น เพื่อลดปัญหาขยะอาหาร (Food Waste) ด้วยการลดขั้นตอนการกรอกข้อมูลให้เหลือน้อยที่สุด (Zero-Friction Ingestion) และแจ้งเตือนอย่างตรงจุด
+
+
+
+---
+
+
+
+## 2. Target Audience & Core JTBD
+
+- **User:** ผู้ใช้งานทั่วไป/วัยทำงาน ที่ซื้อของเข้าบ้าน/ตู้เย็นเป็นประจำ แต่ลืมวันหมดอายุและไม่อยากเสียเวลาจดบันทึกทีละรายการ
+
+
+
+---
+
+
+
+## 3. MVP 1 Scope & Key Features
+
+
+
+### A. Item Ingestion & Input Methods (ระบบเพิ่มรายการ)
+
+1. **Expiry Date Photo Scanner (OCR - [New Feature]):**
+
+   - ถ่ายภาพป้ายวันหมดอายุบนตัวสินค้า (เช่น "EXP 15/08/2026")
+
+   - ระบบอ่านข้อความ (OCR) แล้วสกัดวันหมดอายุและชื่อสินค้าเข้าสู่ระบบให้อัตโนมัติ
+
+2. **Receipt / E-Slip Scanner (OCR):**
+
+   - ถ่ายภาพหรือแนบรูปสลิป/ใบเสร็จรับเงิน
+
+   - อ่านรายชื่อสินค้าและเพิ่มเข้าตู้เย็นพร้อมกันหลายรายการ
+
+3. **Voice Input (Natural Language Processing):**
+
+   - ถ่ายทอดด้วยเสียง เช่น *"ซื้อหมูสับ ไข่ไก่ ผักบุ้ง มาวันนี้"*
+
+   - แปลงเสียงเป็นข้อความและบันทึกรายการให้อัตโนมัติ
+
+4. **AI Auto-Expiry Estimation (Fallback Logic):**
+
+   - หากสินค้าไม่มีป้ายระบุวันหมดอายุ (เช่น ผักสด, อาหารทำเอง) AI จะกำหนดวันหมดอายุมาตรฐานให้อัตโนมัติ (เช่น ผักใบ 3-5 วัน, ไข่ไก่ 14 วัน, อาหารปรุงสุก 3 วัน)
+
+
+
+### B. Inventory & Item Management (ระบบจัดการรายการ - [New Feature])
+
+1. **Urgency-Based List View:**
+
+   - แสดงรายการวัตถุดิบจัดกลุ่มตามความเร่งด่วนของวันหมดอายุ:
+
+     - 🔴 **Red (Expiring Soon):** หมดอายุภายใน 0-1 วัน
+
+     - 🟡 **Yellow (Warning):** หมดอายุภายใน 2-4 วัน
+
+     - 🟢 **Green (Safe):** เก็บได้นานกว่า 5 วันขึ้นไป
+
+2. **Delete & Status Update (การลบและอัปเดตสถานะ):**
+
+   - **Swipe-to-Delete:** ปัดซ้ายรายการเพื่อลบออกจากระบบ
+
+   - **Mark as Consumed:** ปุ่มกดยืนยันว่า "ทานแล้ว/ใช้หมดแล้ว" เพื่อเก็บบันทึกประวัติ
+
+   - **Delete Button:** ปุ่มลบรายการในหน้าแก้ไขข้อมูล
+
+3. **Edit Item Details:**
+
+   - สามารถกดเข้าไปแก้ไขชื่อ จำนวน และปรับเปลี่ยนวันหมดอายุได้ตามต้องการ
+
+
+
+### C. Proactive Notification (การแจ้งเตือน)
+
+1. **Daily Expiry Alert:**
+
+   - แจ้งเตือนประจำวัน (Push Notification) ในช่วงเวลาที่ตั้งค่าไว้ (เช่น 08:00 น.) สรุปรายการสินค้าที่กำลังจะหมดอายุในวันนั้น
+
+
+
+---
+
+
+
+## 4. UI/UX Design Guidelines
+
+
+
+### Color Palette & Visual System
+
+- **Primary Color:** Clean Fresh Green (#2ECC71)
+
+- **Urgency Indicators:** 
+
+  - Red Badge (#E74C3C) - หมดอายุวันนี้/พรุ่งนี้
+
+  - Yellow Badge (#F1C40F) - ใกล้หมดอายุ
+
+  - Green Badge (#2ECC71) - สดใหม่
+
+
+
+### Screen Breakdown
+
+
+
+#### Screen 1: Home Dashboard (หน้าหลัก)
+
+- **Header:** สรุปสถานะภาพรวม (เช่น "มีของต้องรีบกิน 3 รายการ")
+
+- **Main List:** แสดงการ์ดรายการวัตถุดิบ เรียงลำดับความเร่งด่วนจากมากไปน้อย (Red -> Yellow -> Green)
+
+- **Card Elements:** รูปสินค้า (ถ้ามี), ชื่อสินค้า, จำนวน, แถบสีและข้อความบอกวันหมดอายุ (เช่น "เหลืออีก 1 วัน")
+
+- **Interactions:**
+
+  - กดที่การ์ดเพื่อดู/แก้ไขรายละเอียด
+
+  - ปัดซ้าย (Swipe Left) เพื่อลบรายการ
+
+- **FAB (Floating Action Button):** ปุ่มกลมขนาดใหญ่ตรงกลางล่าง สำหรับกดเพิ่มรายการใหม่
+
+
+
+#### Screen 2: Smart Add Modal / Bottom Sheet (หน้าเพิ่มรายการ)
+
+- **Option Selectors:**
+
+  - 📷 **Scan Expiry Date:** เปิดกล้องถ่ายป้าย EXP บนสินค้า
+
+  - 🧾 **Scan Receipt:** ถ่ายใบเสร็จรับเงิน
+
+  - 🎙️ **Voice Add:** กดค้างเพื่อพูดบันทึกเสียง
+
+  - ✏️ **Manual Input:** ฟอร์มกรอกข้อมูลทั่วไป
+
+- **Review Screen:** หน้าแสดงผลการสกัดข้อมูล ให้ผู้ใช้ตรวจสอบและกดยืนยันก่อนบันทึกเข้าตู้
+
+
+
+#### Screen 3: Item Detail & Edit Screen (หน้ารายละเอียดและแก้ไข)
+
+- ฟิลด์แสดงผล: ชื่อสินค้า, หมวดหมู่, จำนวน, วันที่ซื้อ, วันหมดอายุ
+
+- ปุ่ม **"ใช้แล้ว (Mark as Consumed)"** และ ปุ่ม **"ลบรายการ (Delete Item)"**
+
+
+
+---
+
+
+
+## 5. Data Schema Concept (โครงสร้างข้อมูลพื้นฐาน)
+
+```json
+
+{
+
+  "item_id": "string",
+
+  "name": "string",
+
+  "category": "string (e.g., Meat, Vegetable, Dairy, Cooked Food)",
+
+  "quantity": "number",
+
+  "unit": "string (e.g., pcs, kg, pack)",
+
+  "purchase_date": "date",
+
+  "expiry_date": "date",
+
+  "expiry_source": "enum (OCR_PRODUCT, OCR_RECEIPT, VOICE, AI_ESTIMATE, MANUAL)",
+
+  "status": "enum (ACTIVE, CONSUMED, DELETED)",
+
+  "urgency_level": "enum (RED, YELLOW, GREEN)"
+
+} 
+
