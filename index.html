@@ -1338,7 +1338,7 @@
 
         // Trigger LINE Notify/Bot alert summary webhook (MVP 2)
         async function triggerLineWebhook() {
-            // Find active expiring/expired items (days left <= 3)
+            // Find active expiring/expired items (days left <= 4)
             const today = new Date();
             today.setHours(0,0,0,0);
             
@@ -1348,11 +1348,11 @@
                 expDate.setHours(0,0,0,0);
                 const diffTime = expDate - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 3;
+                return diffDays <= 4;
             });
             
             if (expiringItems.length === 0) {
-                showPushAlert("ไม่มีวัตถุดิบเร่งด่วน", "ขณะนี้ไม่มีวัตถุดิบที่ใกล้หมดอายุใน 3 วัน");
+                showPushAlert("ไม่มีวัตถุดิบเร่งด่วน", "ขณะนี้ไม่มีวัตถุดิบที่ใกล้หมดอายุใน 4 วัน");
                 return;
             }
             
