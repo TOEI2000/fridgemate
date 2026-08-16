@@ -184,12 +184,24 @@
         </div>
 
         <!-- Filter Tabs -->
-        <div class="bg-white border-b border-slate-150 px-3 pb-2 flex gap-1.5 overflow-x-auto text-[11px] font-semibold no-scrollbar">
+        <div class="bg-white px-3 pb-2 flex gap-1.5 overflow-x-auto text-[11px] font-semibold no-scrollbar">
             <button onclick="setFilter('ALL')" id="filter-ALL" class="px-3.5 py-2 rounded-xl bg-emerald-500 text-white shadow-sm shrink-0 transition-all">ทั้งหมด (<span id="count-all">0</span>)</button>
             <button onclick="setFilter('RED')" id="filter-RED" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🔴 รีบกิน (<span id="count-red">0</span>)</button>
             <button onclick="setFilter('YELLOW')" id="filter-YELLOW" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🟡 ใกล้หมด (<span id="count-yellow">0</span>)</button>
             <button onclick="setFilter('GREEN')" id="filter-GREEN" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🟢 สดใหม่ (<span id="count-green">0</span>)</button>
             <button onclick="setFilter('CONSUMED')" id="filter-CONSUMED" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">✓ กินแล้ว (<span id="count-consumed">0</span>)</button>
+        </div>
+
+        <!-- Category Filter Tabs -->
+        <div class="bg-slate-50 border-b border-t border-slate-200/60 px-3 py-2 flex gap-1.5 overflow-x-auto text-[10px] font-medium no-scrollbar">
+            <button onclick="setCategoryFilter('ALL')" id="cat-filter-ALL" class="px-3 py-1.5 rounded-lg bg-slate-800 text-white font-semibold shrink-0 transition-all">ทุกหมวดหมู่</button>
+            <button onclick="setCategoryFilter('Meat')" id="cat-filter-Meat" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥩 เนื้อสัตว์</button>
+            <button onclick="setCategoryFilter('Vegetable')" id="cat-filter-Vegetable" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥬 ผักสด</button>
+            <button onclick="setCategoryFilter('Egg')" id="cat-filter-Egg" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥚 ไข่ไก่</button>
+            <button onclick="setCategoryFilter('Dairy')" id="cat-filter-Dairy" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥛 นม/เนย</button>
+            <button onclick="setCategoryFilter('Cooked Food')" id="cat-filter-Cooked-Food" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🍱 ปรุงสำเร็จ</button>
+            <button onclick="setCategoryFilter('Fruit')" id="cat-filter-Fruit" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🍎 ผลไม้</button>
+            <button onclick="setCategoryFilter('Other')" id="cat-filter-Other" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥫 อื่นๆ</button>
         </div>
 
         <!-- Main Items List -->
@@ -480,6 +492,12 @@
 
                 <input type="hidden" id="edit-item-id">
                 
+                <!-- Image Preview container in Edit Modal -->
+                <div id="edit-img-preview-container" class="hidden rounded-2xl overflow-hidden border border-slate-200 shadow-inner h-32 bg-slate-100 flex items-center justify-center relative mt-3 mb-1">
+                    <img id="edit-img-preview" src="" class="w-full h-full object-cover">
+                    <div class="absolute bottom-2 right-2 bg-black/60 text-white text-[8px] font-bold px-2 py-0.5 rounded-full tracking-wider">รูปถ่ายวัตถุดิบ</div>
+                </div>
+                
                 <div class="space-y-3.5 my-4 text-xs">
                     <div>
                         <label class="text-[10px] font-bold text-slate-500 block mb-1">ชื่อวัตถุดิบ</label>
@@ -748,6 +766,9 @@
             const deletedItem = items.find(i => i.item_id === itemId);
             const itemName = deletedItem ? deletedItem.name : "วัตถุดิบ";
             
+            // Clean up stored image preview if it exists
+            localStorage.removeItem('img_preview_' + itemId);
+            
             if (supabaseClient) {
                 try {
                     const { error } = await supabaseClient.from('fridgemate_items').delete().eq('item_id', itemId);
@@ -894,6 +915,27 @@
             renderApp(); 
         }
 
+        let currentCategoryFilter = 'ALL';
+
+        function setCategoryFilter(cat) {
+            currentCategoryFilter = cat;
+            
+            const categories = ['ALL', 'Meat', 'Vegetable', 'Egg', 'Dairy', 'Cooked Food', 'Fruit', 'Other'];
+            categories.forEach(c => {
+                const domId = 'cat-filter-' + c.replace(' ', '-');
+                const btn = document.getElementById(domId);
+                if (btn) {
+                    if (c === cat) {
+                        btn.className = "px-3 py-1.5 rounded-lg bg-slate-800 text-white font-semibold shrink-0 transition-all";
+                    } else {
+                        btn.className = "px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all";
+                    }
+                }
+            });
+
+            renderApp();
+        }
+
         // Custom search element filter & render dashboard cards
         function renderApp() {
             const container = document.getElementById('item-list-container');
@@ -961,6 +1003,11 @@
                 if (currentFilter === 'GREEN') return u === 'GREEN';
                 return true;
             });
+
+            // Filter by category selection
+            if (currentCategoryFilter !== 'ALL') {
+                filtered = filtered.filter(item => item.category === currentCategoryFilter);
+            }
 
             // Filter by search keyword
             if (searchVal) {
@@ -1754,6 +1801,10 @@
 
         async function confirmReviewItems() {
             for (const item of stagingItems) { 
+                // Store captured scan/receipt preview base64 under this item ID
+                if (currentCapturePreviewUrl) {
+                    localStorage.setItem('img_preview_' + item.item_id, currentCapturePreviewUrl);
+                }
                 await saveItemToDB(item); 
             }
             closeAddModal();
@@ -1793,6 +1844,17 @@
             document.getElementById('edit-purchase-date').value = item.purchase_date;
             document.getElementById('edit-expiry-date').value = item.expiry_date;
             
+            // Look up saved image in local storage
+            const savedImg = localStorage.getItem('img_preview_' + item.item_id);
+            const imgContainer = document.getElementById('edit-img-preview-container');
+            const imgPreview = document.getElementById('edit-img-preview');
+            if (savedImg && imgContainer && imgPreview) {
+                imgPreview.src = savedImg;
+                imgContainer.classList.remove('hidden');
+            } else if (imgContainer) {
+                imgContainer.classList.add('hidden');
+            }
+
             // Set source text
             const src = item.expiry_source || "MANUAL";
             document.getElementById('edit-source-info').innerText = `วิธีการบันทึก: ${src}`;
