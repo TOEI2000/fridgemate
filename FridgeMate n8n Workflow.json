@@ -217,10 +217,422 @@
       "id": "line-respond-webhook-0004",
       "name": "Respond to LINE Webhook",
       "type": "n8n-nodes-base.respondToWebhook",
+      "id": "line-respond-webhook-0004",
+      "name": "Respond to LINE Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
         3150,
         1200
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "is-line-cond-0001",
+              "leftValue": "={{ $json.body?.events !== undefined }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-line-if-0001",
+      "name": "Is LINE Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst events = body.events || [];\nif (events.length === 0) {\n    return [{ json: { is_valid: false } }];\n}\n\nconst event = events[0];\nconst source = event.source || {};\nconst lineId = source.groupId || source.userId || '';\nconst replyToken = event.replyToken || '';\nconst message = event.message || {};\nconst msgType = message.type || '';\n\nlet isCommand = false;\nlet commandType = '';\nlet targetHouseholdId = '';\nlet textContent = '';\n\nif (msgType === 'text') {\n    textContent = (message.text || '').trim();\n    if (textContent.startsWith('เชื่อมบ้าน ')) {\n        isCommand = true;\n        commandType = 'LINK_HOUSEHOLD';\n        targetHouseholdId = textContent.replace('เชื่อมบ้าน ', '').trim();\n    } else if (textContent.toLowerCase().startsWith('set household ')) {\n        isCommand = true;\n        commandType = 'LINK_HOUSEHOLD';\n        targetHouseholdId = textContent.replace(/set household /i, '').trim();\n    }\n}\n\nreturn [{\n    json: {\n        is_valid: true,\n        lineId,\n        replyToken,\n        msgType,\n        isCommand,\n        commandType,\n        targetHouseholdId,\n        textContent,\n        messageId: message.id || ''\n    }\n}];"
+      },
+      "id": "line-classifier-0002",
+      "name": "LINE Event Classifier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "is-line-cmd-cond",
+              "leftValue": "={{ $json.isCommand }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "line-cmd-if-0003",
+      "name": "Is LINE Command?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2820,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qsrqigptwhwtuyfnpfjy.supabase.co/rest/v1/fridgemate_line_mappings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcnFpZ3B0d2h3dHV5Zm5wZmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MDEwNzEsImV4cCI6MjA5OTk3NzA3MX0.TShfJCiGxyLFIn6Gm_Wcw4HNQI4DLG_I-p1BTOxW21s"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "resolution=merge-duplicates"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"line_id\": \"{{ $json.lineId }}\",\n  \"household_id\": \"{{ $json.targetHouseholdId }}\"\n}",
+        "options": {}
+      },
+      "id": "line-upsert-mapping-0004",
+      "name": "LINE Upsert Mapping",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3040,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_LINE_CHANNEL_ACCESS_TOKEN>"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('LINE Event Classifier').item.json.replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"เชื่อมโยง LINE นี้เข้ากับตู้เย็นบ้าน {{ $('LINE Event Classifier').item.json.targetHouseholdId }} เรียบร้อยแล้ว! 🏡\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "line-reply-link-0005",
+      "name": "LINE Reply Link Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3260,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://qsrqigptwhwtuyfnpfjy.supabase.co/rest/v1/fridgemate_line_mappings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcnFpZ3B0d2h3dHV5Zm5wZmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MDEwNzEsImV4cCI6MjA5OTk3NzA3MX0.TShfJCiGxyLFIn6Gm_Wcw4HNQI4DLG_I-p1BTOxW21s"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "line_id",
+              "value": "=eq.{{ $json.lineId }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "line-lookup-mapping-0006",
+      "name": "LINE Lookup Mapping",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3040,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const mappings = $input.all();\nconst lineData = $('LINE Event Classifier').first().json;\n\nlet householdId = 'HOME123'; // Default fallback\nif (mappings.length > 0 && mappings[0].json && mappings[0].json.household_id) {\n    householdId = mappings[0].json.household_id;\n} else if (mappings.length > 0 && Array.isArray(mappings[0].json) && mappings[0].json[0] && mappings[0].json[0].household_id) {\n    householdId = mappings[0].json[0].household_id;\n}\n\nreturn [{\n    json: {\n        ...lineData,\n        householdId\n    }\n}];"
+      },
+      "id": "line-process-mapping-0007",
+      "name": "Process Mapping Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3260,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "is-line-text-msg",
+              "leftValue": "={{ $json.msgType }}",
+              "rightValue": "text",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "line-msg-type-if-0008",
+      "name": "Is Text Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        3480,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const MODEL = 'google/gemini-2.5-flash-lite';\nconst today = new Date();\nconst todayStr = today.toISOString().split('T')[0];\n\nconst PROMPT = `คุณเป็นระบบวิเคราะห์ข้อความป้อนเข้าสำหรับแอป FridgeMate วันนี้คือวันที่ ${todayStr}\\nให้วิเคราะห์ข้อความสั่งซื้อวัตถุดิบของผู้ใช้เพื่อแยกแยะรายการวัตถุดิบ \\nแล้วตอบกลับเป็นรูปแบบ JSON (ห้ามมีคำนำหรือเครื่องหมาย markdown ใดๆ ทั้งสิ้น):\\n\\n{\\n  \"items\": [\\n    {\\n      \"name\": \"<ชื่อวัตถุดิบภาษาไทย>\",\\n      \"category\": \"Meat|Vegetable|Egg|Dairy|Cooked Food|Fruit|Other\",\\n      \"quantity\": <ตัวเลขจำนวน>,\\n      \"unit\": \"<หน่วย เช่น แพ็ค/ขวด/ฟอง/ชิ้น/กิโล/ถุง>\",\\n      \"expiry_date\": \"YYYY-MM-DD\"\\n    }\\n  ]\\n}\\n\\nกฎการคำนวณวันหมดอายุสะสมนับจากวันนี้ (${todayStr}):\\n- Meat (เนื้อสัตว์): 3 วันนับจากวันนี้\\n- Vegetable (ผักสด): 4 วันนับจากวันนี้\\n- Dairy (นม/เนย/ชีส): 7 วันนับจากวันนี้\\n- Egg (ไข่ไก่): 14 วันนับจากวันนี้\\n- Cooked Food (อาหารปรุงสุก): 3 วันนับจากวันนี้\\n- Fruit (ผลไม้): 6 วันนับจากวันนี้\\n- Other (อื่นๆ): 14 วันนับจากวันนี้\\n\\nตอบกลับด้วยข้อความ JSON ที่ถูกต้องเท่านั้น ห้ามใส่เครื่องหมายกั้น markdown หรือคำอธิบายเพิ่มเติมใดๆ`;\n\nconst text = $json.textContent || '';\n\nreturn [{  json: {    body: {      model: MODEL,      messages: [        {          role: 'user',          content: `${PROMPT}\\n\\nข้อความจากผู้ใช้: \"${text}\"`        }      ]    }  }}];"
+      },
+      "id": "line-build-text-ai-0009",
+      "name": "Build LINE AI Request (Text)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3700,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://api-data.line.me/v2/bot/message/{{ $json.messageId }}/content",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_LINE_CHANNEL_ACCESS_TOKEN>"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "line-download-image-0010",
+      "name": "LINE Download Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3700,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const MODEL = 'google/gemini-2.5-flash-lite';\nconst today = new Date();\nconst todayStr = today.toISOString().split('T')[0];\n\nconst PROMPT = `You are FridgeMate AI, an expert OCR & Receipt Analyzer. Today's date is ${todayStr}.\\nAnalyze the uploaded image (either a food product expiry label or a grocery store purchase receipt).\\nIdentify all items and their expiry dates, then respond with ONLY valid JSON in this exact structure, no markdown, no explanation:\\n\\n{\\n  \"items\": [\\n    {\\n      \"name\": \"<Food/Product name in Thai>\",\\n      \"category\": \"Meat|Vegetable|Egg|Dairy|Cooked Food|Fruit|Other\",\\n      \"quantity\": <number>,\\n      \"unit\": \"<unit e.g. แพ็ค/ขวด/ฟอง/ชิ้น/กิโล/ถุง>\",\\n      \"expiry_date\": \"YYYY-MM-DD\"\\n    }\\n  ]\\n}\\n\\nGuidelines:\\n1. Product Expiry Label Scan:\\n   - Locate any expiration label text (e.g. EXP, BB, BBE, Best Before, หมดอายุ) and extract the expiration date.\\n   - Convert the date to YYYY-MM-DD format.\\n2. Grocery Receipt Scan:\\n   - Extract all food/grocery items purchased, including their quantities and units.\\n   - For each item, estimate a safe expiry date based on standard shelf life from today's date (${todayStr}):\\n     - Meat (เนื้อสัตว์): 3 days from now\\n     - Vegetable (ผัก): 4 days from now\\n     - Dairy (นม/เนย/ชีส): 7 days from now\\n     - Egg (ไข่): 14 days from now\\n     - Cooked Food (อาหารปรุงสำเร็จ): 3 days from now\\n     - Fruit (ผลไม้): 6 days from now\\n     - Other (อื่นๆ): 14 days from now\\n   - Set the calculated date in \"expiry_date\".\\n\\nRespond ONLY with valid JSON. Do not include markdown code fences.`;\n\nconst item = $input.first();\nconst binaryKeys = Object.keys(item.binary || {});\nconst binaryKey = binaryKeys[0] || 'data';\nconst buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\nconst mime = item.binary?.[binaryKey]?.mimeType || 'image/jpeg';\nconst dataUrl = `data:${mime};base64,${buffer.toString('base64')}`;\n\nreturn [{\n  json: {\n    body: {\n      model: MODEL,\n      messages: [\n        {\n          role: 'user',\n          content: [\n            { type: 'text', text: PROMPT },\n            { type: 'image_url', image_url: { url: dataUrl } }\n          ]\n        }\n      ]\n    }\n  }\n}];"
+      },
+      "id": "line-build-vision-ai-0011",
+      "name": "Build LINE AI Request (Vision)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3920,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "openRouterApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": {}
+      },
+      "id": "line-openrouter-vision-0012",
+      "name": "OpenRouter Vision for LINE",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4140,
+        600
+      ],
+      "credentials": {
+        "openRouterApi": {
+          "id": "Y6EqbTsAbF34s34K",
+          "name": "Calories Tracker"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nlet text = raw.choices?.[0]?.message?.content\n  ?? raw.content ?? raw.text ?? raw.output ?? raw.response ?? '';\nif (typeof text !== 'string') {\n  text = JSON.stringify(text);\n}\n\nif (!text && raw.error) {\n  return [{ json: {\n    items: [],\n    error: true,\n    note_th: 'AI ขัดข้อง: ' + (raw.error.message || 'unknown error')\n  } }];\n}\n\nlet cleaned = text.trim()\n  .replace(/^```(?:json)?\\s*/i, '')\n  .replace(/```\\s*$/, '')\n  .trim();\n\nlet parsed = null;\ntry {\n  parsed = JSON.parse(cleaned);\n} catch (e) {\n  const match = cleaned.match(/\\{[\\s\\S]*\\}/);\n  if (match) {\n    try { parsed = JSON.parse(match[0]); } catch (e2) {}\n  }\n}\n\nif (!parsed || typeof parsed !== 'object') {\n  parsed = {\n    items: [],\n    error: true,\n    note_th: 'ไม่สามารถอ่านผลวิเคราะห์จาก AI ได้'\n  };\n}\n\nreturn [{ json: parsed }];"
+      },
+      "id": "line-parse-ai-0013",
+      "name": "Parse LINE AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4360,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = $input.first().json;\nconst lineData = $('Process Mapping Result').first().json;\nconst householdId = lineData.householdId || 'HOME123';\n\nconst items = (parsed.items || []).map((item, index) => {\n    return {\n        item_id: `item_${Date.now()}_${index}`,\n        name: item.name,\n        category: item.category || 'Other',\n        quantity: parseInt(item.quantity) || 1,\n        unit: item.unit || 'ชิ้น',\n        purchase_date: new Date().toISOString().split('T')[0],\n        expiry_date: item.expiry_date,\n        expiry_source: 'LINE_BOT',\n        status: 'ACTIVE',\n        household_id: householdId\n    };\n});\n\nreturn [{ json: { items, count: items.length, householdId, replyToken: lineData.replyToken } }];"
+      },
+      "id": "line-prep-db-items-0014",
+      "name": "Prepare Supabase Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4580,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://qsrqigptwhwtuyfnpfjy.supabase.co/rest/v1/fridgemate_items",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzcnFpZ3B0d2h3dHV5Zm5wZmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ0MDEwNzEsImV4cCI6MjA5OTk3NzA3MX0.TShfJCiGxyLFIn6Gm_Wcw4HNQI4DLG_I-p1BTOxW21s"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.items) }}",
+        "options": {}
+      },
+      "id": "line-write-supabase-0015",
+      "name": "Supabase Write Items",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4800,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.line.me/v2/bot/message/reply",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer <YOUR_LINE_CHANNEL_ACCESS_TOKEN>"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"replyToken\": \"{{ $('Prepare Supabase Items').item.json.replyToken }}\",\n  \"messages\": [\n    {\n      \"type\": \"text\",\n      \"text\": \"บันทึกเข้าตู้เย็น (บ้าน {{ $('Prepare Supabase Items').item.json.householdId }}) เรียบร้อยแล้ว! 🥬\\n{{ $('Prepare Supabase Items').item.json.items.map(i => `- ${i.name} (${i.quantity} ${i.unit})`).join('\\\\n') }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "id": "line-reply-save-0016",
+      "name": "LINE Reply Save Success",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        5020,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "line-respond-trigger-0017",
+      "name": "Respond to LINE Trigger",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        5240,
+        600
       ]
     }
   ],
@@ -259,7 +671,7 @@
       "main": [
         [
           {
-            "node": "Has Photo?",
+            "node": "Is LINE Request?",
             "type": "main",
             "index": 0
           }
@@ -326,6 +738,203 @@
         [
           {
             "node": "Respond to LINE Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is LINE Request?": {
+      "main": [
+        [
+          {
+            "node": "LINE Event Classifier",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Has Photo?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Event Classifier": {
+      "main": [
+        [
+          {
+            "node": "Is LINE Command?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is LINE Command?": {
+      "main": [
+        [
+          {
+            "node": "LINE Upsert Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LINE Lookup Mapping",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Upsert Mapping": {
+      "main": [
+        [
+          {
+            "node": "LINE Reply Link Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Reply Link Success": {
+      "main": [
+        [
+          {
+            "node": "Respond to LINE Trigger",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Lookup Mapping": {
+      "main": [
+        [
+          {
+            "node": "Process Mapping Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Mapping Result": {
+      "main": [
+        [
+          {
+            "node": "Is Text Message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Text Message?": {
+      "main": [
+        [
+          {
+            "node": "Build LINE AI Request (Text)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "LINE Download Image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LINE AI Request (Text)": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Vision for LINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Download Image": {
+      "main": [
+        [
+          {
+            "node": "Build LINE AI Request (Vision)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build LINE AI Request (Vision)": {
+      "main": [
+        [
+          {
+            "node": "OpenRouter Vision for LINE",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenRouter Vision for LINE": {
+      "main": [
+        [
+          {
+            "node": "Parse LINE AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse LINE AI Response": {
+      "main": [
+        [
+          {
+            "node": "Prepare Supabase Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Supabase Items": {
+      "main": [
+        [
+          {
+            "node": "Supabase Write Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Write Items": {
+      "main": [
+        [
+          {
+            "node": "LINE Reply Save Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LINE Reply Save Success": {
+      "main": [
+        [
+          {
+            "node": "Respond to LINE Trigger",
             "type": "main",
             "index": 0
           }
