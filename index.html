@@ -189,6 +189,7 @@
             <button onclick="setFilter('RED')" id="filter-RED" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🔴 รีบกิน (<span id="count-red">0</span>)</button>
             <button onclick="setFilter('YELLOW')" id="filter-YELLOW" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🟡 ใกล้หมด (<span id="count-yellow">0</span>)</button>
             <button onclick="setFilter('GREEN')" id="filter-GREEN" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">🟢 สดใหม่ (<span id="count-green">0</span>)</button>
+            <button onclick="setFilter('EXPIRED')" id="filter-EXPIRED" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">⚫ หมดอายุ (<span id="count-expired">0</span>)</button>
             <button onclick="setFilter('CONSUMED')" id="filter-CONSUMED" class="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 shrink-0 transition-all">✓ กินแล้ว (<span id="count-consumed">0</span>)</button>
         </div>
 
@@ -199,6 +200,8 @@
             <button onclick="setCategoryFilter('Vegetable')" id="cat-filter-Vegetable" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥬 ผักสด</button>
             <button onclick="setCategoryFilter('Egg')" id="cat-filter-Egg" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥚 ไข่ไก่</button>
             <button onclick="setCategoryFilter('Dairy')" id="cat-filter-Dairy" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥛 นม/เนย</button>
+            <button onclick="setCategoryFilter('Yogurt/Cheese')" id="cat-filter-Yogurt-Cheese" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🧀 โยเกิร์ต/ชีส</button>
+            <button onclick="setCategoryFilter('Bread')" id="cat-filter-Bread" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🍞 ขนมปัง</button>
             <button onclick="setCategoryFilter('Cooked Food')" id="cat-filter-Cooked-Food" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🍱 ปรุงสำเร็จ</button>
             <button onclick="setCategoryFilter('Fruit')" id="cat-filter-Fruit" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🍎 ผลไม้</button>
             <button onclick="setCategoryFilter('Other')" id="cat-filter-Other" class="px-3 py-1.5 rounded-lg bg-white border border-slate-200 text-slate-600 shrink-0 hover:bg-slate-100 transition-all">🥫 อื่นๆ</button>
@@ -438,6 +441,8 @@
                                 <option value="Vegetable">🥦 ผักสด (4 วัน)</option>
                                 <option value="Egg">🥚 ไข่ไก่ (14 วัน)</option>
                                 <option value="Dairy">🥛 นม/เนย (7 วัน)</option>
+                                <option value="Yogurt/Cheese">🧀 โยเกิร์ต/ชีส (14 วัน)</option>
+                                <option value="Bread">🍞 ขนมปัง (7 วัน)</option>
                                 <option value="Cooked Food">🍱 อาหารปรุงสุก (3 วัน)</option>
                                 <option value="Fruit">🍎 ผลไม้ (6 วัน)</option>
                                 <option value="Other">🥫 อื่น ๆ (14 วัน)</option>
@@ -511,6 +516,8 @@
                                 <option value="Vegetable">🥦 ผักสด</option>
                                 <option value="Egg">🥚 ไข่ไก่</option>
                                 <option value="Dairy">🥛 นม/เนย</option>
+                                <option value="Yogurt/Cheese">🧀 โยเกิร์ต/ชีส</option>
+                                <option value="Bread">🍞 ขนมปัง</option>
                                 <option value="Cooked Food">🍱 อาหารปรุงสุก</option>
                                 <option value="Fruit">🍎 ผลไม้</option>
                                 <option value="Other">🥫 อื่น ๆ</option>
@@ -893,6 +900,7 @@
 
         function getUrgencyLevel(expiryDateStr) {
             const daysLeft = getDaysRemaining(expiryDateStr);
+            if (daysLeft < 0) return 'EXPIRED';
             if (daysLeft <= 1) return 'RED';
             if (daysLeft <= 4) return 'YELLOW';
             return 'GREEN';
@@ -904,6 +912,8 @@
                 case 'Vegetable': return 4;
                 case 'Egg': return 14;
                 case 'Dairy': return 7;
+                case 'Yogurt/Cheese': return 14;
+                case 'Bread': return 7;
                 case 'Cooked Food': return 3;
                 case 'Fruit': return 6;
                 default: return 14;
@@ -920,9 +930,9 @@
         function setCategoryFilter(cat) {
             currentCategoryFilter = cat;
             
-            const categories = ['ALL', 'Meat', 'Vegetable', 'Egg', 'Dairy', 'Cooked Food', 'Fruit', 'Other'];
+            const categories = ['ALL', 'Meat', 'Vegetable', 'Egg', 'Dairy', 'Yogurt/Cheese', 'Bread', 'Cooked Food', 'Fruit', 'Other'];
             categories.forEach(c => {
-                const domId = 'cat-filter-' + c.replace(' ', '-');
+                const domId = 'cat-filter-' + c.replace('/', '-').replace(' ', '-');
                 const btn = document.getElementById(domId);
                 if (btn) {
                     if (c === cat) {
@@ -942,17 +952,22 @@
             const searchVal = document.getElementById('search-input').value.toLowerCase().trim();
             container.innerHTML = '';
 
-            let countAll=0, countRed=0, countYellow=0, countGreen=0, countConsumed=0;
+            let countAll=0, countRed=0, countYellow=0, countGreen=0, countConsumed=0, countExpired=0;
             
             // Calculate active statistics count
             items.forEach(item => {
                 if (item.status === 'CONSUMED') { countConsumed++; return; }
                 if (item.status === 'DELETED') return;
-                countAll++;
+                
                 const u = getUrgencyLevel(item.expiry_date);
-                if (u === 'RED') countRed++;
-                else if (u === 'YELLOW') countYellow++;
-                else if (u === 'GREEN') countGreen++;
+                if (u === 'EXPIRED') {
+                    countExpired++;
+                } else {
+                    countAll++; // Only safe items are counted in ALL
+                    if (u === 'RED') countRed++;
+                    else if (u === 'YELLOW') countYellow++;
+                    else if (u === 'GREEN') countGreen++;
+                }
             });
 
             // Update badges text
@@ -960,11 +975,12 @@
             document.getElementById('count-red').innerText = countRed;
             document.getElementById('count-yellow').innerText = countYellow;
             document.getElementById('count-green').innerText = countGreen;
+            if(document.getElementById('count-expired')) document.getElementById('count-expired').innerText = countExpired;
             document.getElementById('count-consumed').innerText = countConsumed;
             document.getElementById('red-count').innerText = countRed;
 
             // Highlight tab visual classes
-            const tabs = ['ALL', 'RED', 'YELLOW', 'GREEN', 'CONSUMED'];
+            const tabs = ['ALL', 'RED', 'YELLOW', 'GREEN', 'EXPIRED', 'CONSUMED'];
             tabs.forEach(t => {
                 const btn = document.getElementById(`filter-${t}`);
                 if (!btn) return;
@@ -998,6 +1014,8 @@
                 if (currentFilter === 'CONSUMED') return item.status === 'CONSUMED';
                 if (item.status !== 'ACTIVE') return false;
                 const u = getUrgencyLevel(item.expiry_date);
+                if (currentFilter === 'ALL') return u !== 'EXPIRED';
+                if (currentFilter === 'EXPIRED') return u === 'EXPIRED';
                 if (currentFilter === 'RED') return u === 'RED';
                 if (currentFilter === 'YELLOW') return u === 'YELLOW';
                 if (currentFilter === 'GREEN') return u === 'GREEN';
@@ -1785,6 +1803,8 @@
                                 <option value="Vegetable" ${item.category === 'Vegetable' ? 'selected' : ''}>🥦 ผักสด</option>
                                 <option value="Egg" ${item.category === 'Egg' ? 'selected' : ''}>🥚 ไข่ไก่</option>
                                 <option value="Dairy" ${item.category === 'Dairy' ? 'selected' : ''}>🥛 นม/เนย</option>
+                                <option value="Yogurt/Cheese" ${item.category === 'Yogurt/Cheese' ? 'selected' : ''}>🧀 โยเกิร์ต/ชีส</option>
+                                <option value="Bread" ${item.category === 'Bread' ? 'selected' : ''}>🍞 ขนมปัง</option>
                                 <option value="Cooked Food" ${item.category === 'Cooked Food' ? 'selected' : ''}>🍱 อาหารปรุง</option>
                                 <option value="Fruit" ${item.category === 'Fruit' ? 'selected' : ''}>🍎 ผลไม้</option>
                                 <option value="Other" ${item.category === 'Other' ? 'selected' : ''}>🥫 อื่น ๆ</option>
