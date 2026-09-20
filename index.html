@@ -1338,9 +1338,12 @@
 
         // Trigger LINE Notify/Bot alert summary webhook (MVP 2)
         async function triggerLineWebhook() {
-            // Find active expiring/expired items (days left <= 4)
+            // Find active expiring/expired items (days left <= 4) and ensure 1 notification per zone
             const today = new Date();
             today.setHours(0,0,0,0);
+            
+            const notifiedYellow = JSON.parse(localStorage.getItem('notifiedYellow') || '{}');
+            const notifiedRed = JSON.parse(localStorage.getItem('notifiedRed') || '{}');
             
             const expiringItems = items.filter(item => {
                 if (item.status !== 'ACTIVE') return false;
@@ -1348,7 +1351,14 @@
                 expDate.setHours(0,0,0,0);
                 const diffTime = expDate - today;
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                return diffDays <= 4;
+                
+                let shouldNotify = false;
+                if (diffDays > 1 && diffDays <= 4) { // Yellow Zone (2-4 days)
+                    if (!notifiedYellow[item.item_id]) shouldNotify = true;
+                } else if (diffDays <= 1) { // Red Zone (<= 1 day)
+                    if (!notifiedRed[item.item_id]) shouldNotify = true;
+                }
+                return shouldNotify;
             });
             
             if (expiringItems.length === 0) {
@@ -1391,6 +1401,22 @@
                 });
                 
                 if (response.ok) {
+                    // Mark as notified in localStorage
+                    const today = new Date();
+                    today.setHours(0,0,0,0);
+                    expiringItems.forEach(item => {
+                        const expDate = new Date(item.expiry_date);
+                        expDate.setHours(0,0,0,0);
+                        const diffDays = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+                        if (diffDays > 1 && diffDays <= 4) {
+                            notifiedYellow[item.item_id] = true;
+                        } else if (diffDays <= 1) {
+                            notifiedRed[item.item_id] = true;
+                        }
+                    });
+                    localStorage.setItem('notifiedYellow', JSON.stringify(notifiedYellow));
+                    localStorage.setItem('notifiedRed', JSON.stringify(notifiedRed));
+                    
                     showPushAlert("ส่งแจ้งเตือนสำเร็จ", "ส่งสรุปวัตถุดิบเร่งด่วนเข้า LINE เรียบร้อยแล้ว 🔔");
                 } else {
                     console.error("LINE Webhook response error:", response.status);
